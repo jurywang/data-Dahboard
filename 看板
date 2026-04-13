@@ -1,0 +1,2851 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>终端云服务数据看板：为硬件带来体验价值，依托硬件实现运营价值</title>
+    <!-- 引入ECharts（预留图表切换能力） -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+    <style>
+        /* -------------------------- 华为品牌配色系统 -------------------------- */
+        :root {
+            --huawei-red: #CF0A2C;
+            --huawei-red-light: #E64340;
+            --huawei-red-dark: #A60000;
+            --bg-gray: #F5F5F5;
+            --bg-white: #FFFFFF;
+            --text-primary: #333333;
+            --text-secondary: #666666;
+            --text-tertiary: #999999;
+            --border-color: #E5E5E5;
+            --hover-bg: #FFF0F0;
+            --positive-green: #52c41a;
+            --negative-red: #ff4d4f;
+        }
+
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+            font-family: 'HarmonyOS Sans SC', 'Microsoft YaHei', sans-serif; 
+        }
+
+        body { 
+            background-color: var(--bg-gray); 
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        /* -------------------------- 顶部导航栏 -------------------------- */
+        .top-nav {
+            background: var(--bg-white);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .nav-header {
+            padding: 15px 30px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: var(--huawei-red);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* API Key输入样式 */
+        .api-key-section {
+            background: var(--bg-white);
+            border-top: 1px solid var(--border-color);
+            padding: 15px 30px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .api-key-input {
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 14px;
+            width: 300px;
+        }
+
+        .api-key-save {
+            padding: 8px 16px;
+            background: var(--huawei-red);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .api-key-save:hover {
+            background: var(--huawei-red-dark);
+        }
+
+        .api-status {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-left: 10px;
+        }
+
+        .api-status.connected {
+            color: var(--positive-green);
+        }
+
+        .api-status.disconnected {
+            color: var(--negative-red);
+        }
+
+        /* 加载动画 */
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border-color);
+            border-radius: 50%;
+            border-top-color: var(--huawei-red);
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .nav-title::before {
+            content: '';
+            width: 4px;
+            height: 24px;
+            background: var(--huawei-red);
+            border-radius: 2px;
+        }
+
+        .nav-filters {
+            padding: 20px 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .filter-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-width: 200px;
+        }
+
+        .filter-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .filter-label::before {
+            content: '';
+            width: 3px;
+            height: 12px;
+            background: var(--huawei-red);
+            border-radius: 1px;
+        }
+
+        .filter-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .filter-btn {
+            padding: 6px 14px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background: var(--bg-white);
+            color: var(--text-secondary);
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .filter-btn:hover {
+            border-color: var(--huawei-red);
+            color: var(--huawei-red);
+            background: var(--hover-bg);
+        }
+
+        .filter-btn.active {
+            background: var(--huawei-red);
+            border-color: var(--huawei-red);
+            color: var(--bg-white);
+        }
+
+        .filter-btn.all-btn {
+            border-color: var(--text-tertiary);
+            color: var(--text-tertiary);
+            font-weight: 600;
+        }
+
+        .filter-btn.all-btn.active {
+            background: var(--text-tertiary);
+            color: var(--bg-white);
+        }
+
+        .search-box {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .search-input {
+            padding: 8px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            width: 320px;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--huawei-red);
+            box-shadow: 0 0 0 3px rgba(207, 10, 44, 0.1);
+        }
+
+        /* -------------------------- 主体布局（上下结构） -------------------------- */
+        .main-container { 
+            display: flex; 
+            flex-direction: column;
+            padding: 20px 30px;
+            gap: 20px;
+        }
+
+        /* 上半部分：侧边栏指标体系 + 口径定义面板 */
+        .upper-section {
+            display: flex;
+            gap: 20px;
+            height: 420px;
+        }
+
+        /* 侧边栏指标体系（支持多选） */
+        .sidebar {
+            width: 30%;
+            background: var(--bg-white);
+            border-radius: 8px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            overflow-y: auto;
+            padding: 20px 0;
+            flex-shrink: 0;
+        }
+
+        /* 口径定义面板（支持多指标展示） */
+        .definition-panel {
+            flex: 7;
+            background: var(--bg-white);
+            border-radius: 8px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .metric-level { 
+            padding: 0 15px; 
+        }
+
+        .level-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            padding: 12px 0;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .level-title:hover { 
+            color: var(--huawei-red); 
+        }
+
+        .metric-list { 
+            padding: 10px 0; 
+            display: none; 
+        }
+
+        .metric-list.active { 
+            display: block; 
+        }
+
+        .metric-item {
+            padding: 10px 15px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-radius: 4px;
+            margin-bottom: 4px;
+            transition: all 0.2s;
+        }
+
+        .metric-item:hover { 
+            background: var(--hover-bg); 
+            color: var(--huawei-red); 
+        }
+
+        .metric-item.active { 
+            background: var(--huawei-red); 
+            color: var(--bg-white); 
+        }
+
+        /* 口径定义面板（支持多指标展示） */
+        .definition-panel {
+            flex: 1;
+            background: var(--bg-white);
+            border-radius: 8px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .definition-panel-header {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .definition-panel-header::before {
+            content: '';
+            width: 3px;
+            height: 16px;
+            background: var(--huawei-red);
+            border-radius: 1px;
+        }
+
+        .definition-metric-block {
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px dashed var(--border-color);
+        }
+
+        .definition-metric-block:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .definition-metric-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--huawei-red);
+            margin-bottom: 10px;
+        }
+
+        .definition-section {
+            margin-bottom: 12px;
+        }
+
+        .definition-section-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+
+        .definition-content {
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.8;
+        }
+
+        .definition-content ul {
+            margin-left: 20px;
+            margin-top: 4px;
+        }
+
+        .definition-content li {
+            margin-bottom: 4px;
+        }
+
+        .definition-content .highlight {
+            color: var(--huawei-red);
+            font-weight: 600;
+        }
+
+        /* AI分析内容样式 - 卡片式设计 */
+        .ai-analysis-content {
+            all: initial;
+            font-family: 'HarmonyOS Sans SC', 'Microsoft YaHei', sans-serif;
+            color: var(--text-primary);
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .ai-analysis-content * {
+            all: unset;
+            display: block;
+        }
+
+        .ai-card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            border-left: 4px solid var(--huawei-red);
+        }
+
+        .ai-card-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--huawei-red);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ai-card-title::before {
+            content: '';
+            width: 4px;
+            height: 20px;
+            background: var(--huawei-red);
+            border-radius: 2px;
+        }
+
+        .ai-card-content {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.8;
+        }
+
+        .ai-card-content p {
+            margin-bottom: 12px;
+        }
+
+        .ai-card-content p:last-child {
+            margin-bottom: 0;
+        }
+
+        .ai-card-content ul, .ai-card-content ol {
+            margin-left: 20px;
+            margin-top: 8px;
+            margin-bottom: 12px;
+        }
+
+        .ai-card-content li {
+            margin-bottom: 8px;
+            padding-left: 8px;
+        }
+
+        .ai-card-content strong {
+            color: var(--huawei-red);
+            font-weight: 600;
+        }
+
+        /* 不同类型的卡片用不同的边框颜色 */
+        .ai-card.overview {
+            border-left-color: #1890ff;
+        }
+
+        .ai-card.overview .ai-card-title::before {
+            background: #1890ff;
+        }
+
+        .ai-card.top-apps {
+            border-left-color: #52c41a;
+        }
+
+        .ai-card.top-apps .ai-card-title::before {
+            background: #52c41a;
+        }
+
+        .ai-card.problems {
+            border-left-color: #faad14;
+        }
+
+        .ai-card.problems .ai-card-title::before {
+            background: #faad14;
+        }
+
+        .ai-card.suggestions {
+            border-left-color: #722ed1;
+        }
+
+        .ai-card.suggestions .ai-card-title::before {
+            background: #722ed1;
+        }
+
+        .ai-card.trends {
+            border-left-color: #eb2f96;
+        }
+
+        .ai-card.trends .ai-card-title::before {
+            background: #eb2f96;
+        }
+
+        /* 确保口径定义部分的样式不受影响 */
+        #definitionContent {
+            isolation: isolate;
+        }
+
+        /* 恢复原始的口径定义样式 */
+        #definitionContent .definition-metric-block {
+            margin-bottom: 20px;
+        }
+
+        #definitionContent .definition-metric-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--huawei-red);
+            margin-bottom: 10px;
+        }
+
+        #definitionContent .definition-section {
+            margin-bottom: 15px;
+        }
+
+        #definitionContent .definition-section-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+
+        #definitionContent .definition-content {
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.8;
+        }
+
+        #definitionContent .definition-content ul {
+            margin-left: 20px;
+            margin-top: 4px;
+        }
+
+        #definitionContent .definition-content li {
+            margin-bottom: 4px;
+        }
+
+        #definitionContent .definition-content .highlight {
+            color: var(--huawei-red);
+            font-weight: 600;
+        }
+
+        /* 下半部分：数据表格 + 数据解读 */
+        .lower-section {
+            background: var(--bg-white);
+            border-radius: 8px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            position: relative;
+        }
+
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .table-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .table-title::before {
+            content: '';
+            width: 4px;
+            height: 20px;
+            background: var(--huawei-red);
+            border-radius: 2px;
+        }
+
+        .time-period-select {
+            display: flex;
+            gap: 8px;
+        }
+
+        .time-period-btn {
+            padding: 6px 14px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background: var(--bg-white);
+            color: var(--text-secondary);
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .time-period-btn:hover {
+            border-color: var(--huawei-red);
+            color: var(--huawei-red);
+            background: var(--hover-bg);
+        }
+
+        .time-period-btn.active {
+            background: var(--huawei-red);
+            border-color: var(--huawei-red);
+            color: var(--bg-white);
+        }
+
+        .table-wrapper {
+            overflow: auto;
+            max-height: 500px;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            min-width: 1200px;
+        }
+
+        .data-table th, .data-table td {
+            padding: 12px 10px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+            white-space: nowrap;
+        }
+
+        .data-table th {
+            background: var(--bg-gray);
+            font-weight: 600;
+            color: var(--text-primary);
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        .data-table tr:hover {
+            background: var(--hover-bg);
+        }
+
+        .data-table td:first-child {
+            font-weight: 500;
+            color: var(--huawei-red);
+            position: sticky;
+            left: 0;
+            background: var(--bg-white);
+            z-index: 2;
+            cursor: pointer;
+        }
+
+        .data-table td:first-child:hover {
+            text-decoration: underline;
+        }
+
+        /* 图表容器样式 */
+        .chart-container {
+            margin-top: 20px;
+            padding: 20px;
+            background: var(--bg-white);
+            border-radius: 8px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .chart-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .chart-title::before {
+            content: '';
+            width: 4px;
+            height: 20px;
+            background: var(--huawei-red);
+            border-radius: 2px;
+        }
+
+        .chart-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .chart-btn {
+            padding: 6px 14px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background: var(--bg-white);
+            color: var(--text-secondary);
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .chart-btn:hover {
+            border-color: var(--huawei-red);
+            color: var(--huawei-red);
+            background: var(--hover-bg);
+        }
+
+        .chart-btn.active {
+            background: var(--huawei-red);
+            border-color: var(--huawei-red);
+            color: var(--bg-white);
+        }
+
+        .chart-content {
+            width: 100%;
+            height: 400px;
+        }
+
+        .data-table th:first-child {
+            position: sticky;
+            left: 0;
+            z-index: 3;
+        }
+
+        /* 同环比样式 */
+        .mom-positive {
+            color: var(--negative-red);
+        }
+        .mom-negative {
+            color: var(--positive-green);
+        }
+        .yoy-positive {
+            color: var(--negative-red);
+        }
+        .yoy-negative {
+            color: var(--positive-green);
+        }
+
+        /* 数据解读模块 */
+        .interpretation-section {
+            border-top: 1px solid var(--border-color);
+            padding-top: 20px;
+        }
+
+        .interpretation-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .interpretation-title::before {
+            content: '';
+            width: 3px;
+            height: 16px;
+            background: var(--huawei-red);
+            border-radius: 1px;
+        }
+
+        .interpretation-content {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.8;
+        }
+
+        .interpretation-block {
+            padding: 12px 15px;
+            background: var(--bg-gray);
+            border-radius: 6px;
+        }
+
+        .interpretation-block-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+
+        /* 滚动条美化 */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-gray);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--text-tertiary);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-secondary);
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <div class="top-nav">
+        <div class="nav-header">
+            <div class="nav-title">终端云服务数据看板</div>
+        </div>
+        
+        <!-- API Key配置区域 -->
+        <div class="api-key-section">
+            <label for="apiKeyInput">大模型API Key：</label>
+            <input type="text" id="apiKeyInput" class="api-key-input" placeholder="请输入API Key" />
+            <button class="api-key-save" onclick="saveApiKey()">保存</button>
+            <span class="api-status" id="apiStatus">未配置</span>
+        </div>
+
+        <div class="nav-filters">
+            <!-- 第一行：区域+统计口径+设备类型+应用区分 -->
+            <div class="filter-row">
+                <!-- 区域筛选 -->
+                <div class="filter-group">
+                    <div class="filter-label">区域</div>
+                    <div class="filter-options" id="regionOptions">
+                        <button class="filter-btn active" data-value="global" onclick="selectRegion('global')">全球</button>
+                        <button class="filter-btn" data-value="domestic" onclick="selectRegion('domestic')">国内</button>
+                        <button class="filter-btn" data-value="overseas" onclick="selectRegion('overseas')">海外</button>
+                    </div>
+                </div>
+
+                <!-- 单双框 -->
+                <div class="filter-group">
+                    <div class="filter-label">单双框</div>
+                    <div class="filter-options" id="frameOptions">
+                        <button class="filter-btn active" data-value="all" onclick="selectFrame('all')">全量</button>
+                        <button class="filter-btn" data-value="single" onclick="selectFrame('single')">单框架</button>
+                        <button class="filter-btn" data-value="dual" onclick="selectFrame('dual')">双框架</button>
+                    </div>
+                </div>
+
+                <!-- 统计口径 -->
+                <div class="filter-group">
+                    <div class="filter-label">统计口径</div>
+                    <div class="filter-options" id="caliberOptions">
+                        <button class="filter-btn active" data-value="account" onclick="selectCaliber('account')">按账号统计</button>
+                        <button class="filter-btn" data-value="device" onclick="selectCaliber('device')">按设备统计</button>
+                    </div>
+                </div>
+
+                <!-- 设备类型 -->
+                <div class="filter-group">
+                    <div class="filter-label">
+                        设备类型
+                        <button class="filter-btn all-btn" onclick="toggleAll('deviceType')" style="padding: 3px 10px; font-size: 12px;">全部</button>
+                    </div>
+                    <div class="filter-options" id="deviceTypeOptions">
+                        <button class="filter-btn active" data-value="phone" onclick="toggleOption('deviceType', 'phone')">手机</button>
+                        <button class="filter-btn" data-value="tablet" onclick="toggleOption('deviceType', 'tablet')">平板</button>
+                        <button class="filter-btn" data-value="pc" onclick="toggleOption('deviceType', 'pc')">PC</button>
+                        <button class="filter-btn" data-value="tv" onclick="toggleOption('deviceType', 'tv')">大屏</button>
+                        <button class="filter-btn" data-value="watch" onclick="toggleOption('deviceType', 'watch')">手表</button>
+                        <button class="filter-btn" data-value="car" onclick="toggleOption('deviceType', 'car')">车机</button>
+                        <button class="filter-btn" data-value="speaker" onclick="toggleOption('deviceType', 'speaker')">音箱</button>
+                        <button class="filter-btn" data-value="glasses" onclick="toggleOption('deviceType', 'glasses')">眼镜</button>
+                        <button class="filter-btn" data-value="headphone" onclick="toggleOption('deviceType', 'headphone')">耳机</button>
+                    </div>
+                </div>
+
+                <!-- 应用区分 -->
+                <div class="filter-group">
+                    <div class="filter-label">
+                        应用区分
+                        <button class="filter-btn all-btn" onclick="toggleAll('appType')" style="padding: 3px 10px; font-size: 12px;">全部</button>
+                    </div>
+                    <div class="filter-options" id="appTypeOptions">
+                        <button class="filter-btn active" data-value="first-party" onclick="toggleOption('appType', 'first-party')">一方应用</button>
+                        <button class="filter-btn" data-value="third-party" onclick="toggleOption('appType', 'third-party')">三方应用</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 第二行：应用一级分类+应用二级分类（联动）+应用名搜索 -->
+            <div class="filter-row">
+                <!-- 应用一级分类 -->
+                <div class="filter-group">
+                    <div class="filter-label">
+                        应用一级分类
+                        <button class="filter-btn all-btn" onclick="toggleAll('appCategory')" style="padding: 3px 10px; font-size: 12px;">全部</button>
+                    </div>
+                    <div class="filter-options" id="appCategoryOptions">
+                        <button class="filter-btn active" data-value="system-tool" onclick="toggleCategory('system-tool')">系统工具</button>
+                        <button class="filter-btn" data-value="content-entertainment" onclick="toggleCategory('content-entertainment')">内容娱乐</button>
+                        <button class="filter-btn" data-value="social-communication" onclick="toggleCategory('social-communication')">社交通讯</button>
+                        <button class="filter-btn" data-value="travel-navigation" onclick="toggleCategory('travel-navigation')">出行导航</button>
+                        <button class="filter-btn" data-value="life-service" onclick="toggleCategory('life-service')">生活服务</button>
+                        <button class="filter-btn" data-value="education-learning" onclick="toggleCategory('education-learning')">教育学习</button>
+                        <button class="filter-btn" data-value="office-efficiency" onclick="toggleCategory('office-efficiency')">办公效率</button>
+                        <button class="filter-btn" data-value="finance-investment" onclick="toggleCategory('finance-investment')">金融理财</button>
+                        <button class="filter-btn" data-value="photography-video" onclick="toggleCategory('photography-video')">摄影摄像</button>
+                        <button class="filter-btn" data-value="other" onclick="toggleCategory('other')">其他</button>
+                    </div>
+                </div>
+
+                <!-- 应用二级分类（与一级分类联动） -->
+                <div class="filter-group">
+                    <div class="filter-label">
+                        应用二级分类
+                        <button class="filter-btn all-btn active" onclick="toggleAll('subCategory')" style="padding: 3px 10px; font-size: 12px;">全部</button>
+                    </div>
+                    <div class="filter-options" id="subCategoryOptions">
+                        <!-- 二级分类由JS动态生成 -->
+                    </div>
+                </div>
+
+                <!-- 应用名搜索 -->
+                <div class="filter-group">
+                    <div class="filter-label">应用名搜索</div>
+                    <div class="search-box">
+                        <input type="text" class="search-input" id="appNameSearch" placeholder="请输入应用名称（如：抖音、微信、应用市场）" oninput="handleSearch()">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主体布局 -->
+    <div class="main-container">
+        <!-- 上半部分：侧边栏指标体系 + 口径定义面板 -->
+        <div class="upper-section">
+            <!-- 侧边栏指标体系（支持多选） -->
+            <div class="sidebar">
+                <!-- 第一级：战略级指标 -->
+                <div class="metric-level">
+                    <div class="level-title" onclick="toggleLevel(1)">
+                        1. 战略级指标
+                        <span id="arrow1">▼</span>
+                    </div>
+                    <div class="metric-list active" id="level1">
+                        <div class="metric-item active" data-metric="dau" onclick="toggleMetric('dau')">日活（DAU）</div>
+                        <div class="metric-item" data-metric="mau" onclick="toggleMetric('mau')">月活（MAU）</div>
+                        <div class="metric-item" data-metric="daily-duration" onclick="toggleMetric('daily-duration')">日人均使用时长</div>
+                        <div class="metric-item" data-metric="daily-launches" onclick="toggleMetric('daily-launches')">日人均使用次数</div>
+                    </div>
+                </div>
+
+                <!-- 第二级：业务线级指标 -->
+                <div class="metric-level">
+                    <div class="level-title" onclick="toggleLevel(2)">
+                        2. 业务线级指标
+                        <span id="arrow2">▼</span>
+                    </div>
+                    <div class="metric-list active" id="level2">
+                        <div class="metric-item" data-metric="biz-duration" onclick="toggleMetric('biz-duration')">业务行为日人均使用时长</div>
+                        <div class="metric-item" data-metric="biz-launches" onclick="toggleMetric('biz-launches')">业务行为日人均使用次数</div>
+                        <div class="metric-item" data-metric="arpu" onclick="toggleMetric('arpu')">ARPU</div>
+                        <div class="metric-item" data-metric="arppu" onclick="toggleMetric('arppu')">ARPPU</div>
+                        <div class="metric-item" data-metric="pay-user" onclick="toggleMetric('pay-user')">有效付费用户数</div>
+                        <div class="metric-item" data-metric="pay-member" onclick="toggleMetric('pay-member')">有效付费会员数</div>
+                    </div>
+                </div>
+
+                <!-- 第三级：专项执行级指标 -->
+                <div class="metric-level">
+                    <div class="level-title" onclick="toggleLevel(3)">
+                        3. 专项执行级指标
+                        <span id="arrow3">▼</span>
+                    </div>
+                    <div class="metric-list active" id="level3">
+                        <div class="metric-item" data-metric="app-market-download" onclick="toggleMetric('app-market-download')">应用市场人均日APP下载量</div>
+                        <div class="metric-item" data-metric="ad-ecpm" onclick="toggleMetric('ad-ecpm')">广告eCPM</div>
+                        <div class="metric-item" data-metric="ad-clients" onclick="toggleMetric('ad-clients')">国内广告在投客户数</div>
+                        <div class="metric-item" data-metric="non-huawei-ad-revenue" onclick="toggleMetric('non-huawei-ad-revenue')">非互广告流水占比</div>
+                        <div class="metric-item" data-metric="card-stock" onclick="toggleMetric('card-stock')">卡包总开卡存量</div>
+                        <div class="metric-item" data-metric="payment-flow" onclick="toggleMetric('payment-flow')">支付流水</div>
+                        <div class="metric-item" data-metric="huawei-pay-penetration" onclick="toggleMetric('huawei-pay-penetration')">全场景自有支付收单流水渗透率</div>
+                        <div class="metric-item" data-metric="card-binding-rate" onclick="toggleMetric('card-binding-rate')">单框华为账号绑银行卡率</div>
+                        <div class="metric-item" data-metric="total-card-binding-users" onclick="toggleMetric('total-card-binding-users')">累计华为支付绑银行卡用户数</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 口径定义面板 -->
+            <div class="definition-panel">
+                <div class="definition-panel-header">选中指标口径定义与场景适配</div>
+                <div id="definitionContent">
+                    <!-- 内容由JS动态生成 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 下半部分：数据表格 + 数据解读 -->
+        <div class="lower-section">
+            <div class="table-header">
+                <div class="table-title">应用数据明细</div>
+                <div class="time-period-select" id="timePeriodSelect">
+                    <button class="time-period-btn active" data-value="day" onclick="selectTimePeriod('day')">日</button>
+                    <button class="time-period-btn" data-value="week" onclick="selectTimePeriod('week')">周</button>
+                    <button class="time-period-btn" data-value="month" onclick="selectTimePeriod('month')">月</button>
+                    <button class="time-period-btn" data-value="bimonth" onclick="selectTimePeriod('bimonth')">双月</button>
+                    <button class="time-period-btn" data-value="quarter" onclick="selectTimePeriod('quarter')">季度</button>
+                    <button class="time-period-btn" data-value="year" onclick="selectTimePeriod('year')">年</button>
+                </div>
+            </div>
+            <div class="table-wrapper">
+                <table class="data-table" id="dataTable">
+                    <!-- 表头和数据由JS动态生成 -->
+                </table>
+            </div>
+
+            <!-- 图表控制按钮 -->
+            <div class="chart-controls" style="margin: 10px 0; display: flex; gap: 10px;">
+                <button class="chart-btn" onclick="toggleComparisonChart()">生成应用对比图表</button>
+            </div>
+
+            <!-- 悬浮图表容器 -->
+            <div class="floating-chart" id="floatingChart" style="display: none; position: absolute; top: 50px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 1000px; height: 400px; z-index: 1000; background: var(--bg-white); border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); padding: 20px;">
+                <div class="floating-chart-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid var(--border-color);">
+                    <div class="chart-title" id="floatingChartTitle">图表</div>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <div class="chart-actions" id="floatingChartActions">
+                            <!-- 图表类型切换按钮将动态添加 -->
+                        </div>
+                        <button class="chart-btn" onclick="closeFloatingChart()" style="padding: 4px 10px;">×</button>
+                    </div>
+                </div>
+                <div class="chart-content" id="floatingChartContent" style="width: 100%; height: calc(100% - 60px);"></div>
+            </div>
+
+            <!-- 数据解读模块 -->
+            <div class="interpretation-section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <div class="interpretation-title">AI数据解读与运营建议</div>
+                    <button id="generateReportBtn" onclick="generateReport()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f64f59 100%); color: white; border: none; padding: 10px 24px; border-radius: 25px; font-size: 14px; cursor: pointer; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); transition: all 0.3s ease;">✨ 生成分析报告</button>
+                </div>
+                <div class="interpretation-content" id="interpretationContent">
+                    <!-- 内容由JS动态生成 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // -------------------------- 全局常量与状态管理 --------------------------
+        const MARKET_BASE = {
+            global: {
+                device: { totalMAU: 120000, avgDAU: 52000 },
+                account: { totalMAU: 96000, avgDAU: 41600 }
+            },
+            domestic: {
+                device: { totalMAU: 80000, avgDAU: 35000 },
+                account: { totalMAU: 64000, avgDAU: 28000 }
+            },
+            overseas: {
+                device: { totalMAU: 40000, avgDAU: 17000 },
+                account: { totalMAU: 32000, avgDAU: 13600 }
+            }
+        };
+
+        // 全局状态（核心修改：单选改多选）
+        const state = {
+            region: 'global',
+            frame: 'all', // 新增：单双框状态
+            caliber: 'account',
+            deviceType: ['phone'], // 默认只选手机
+            appType: ['first-party'], // 默认只选一方业务
+            appCategory: ['system-tool'], // 默认只选系统工具
+            subCategory: [],
+            appName: '',
+            selectedMetrics: ['dau'], // 多选指标数组，默认选中DAU
+            currentTimePeriod: 'day',
+            apiKey: localStorage.getItem('aiApiKey') || '',
+            useAi: localStorage.getItem('useAi') === 'true'
+        };
+
+        // 图表实例
+        let floatingChart = null;
+        let currentChartType = '';
+
+        // -------------------------- 应用分类体系 --------------------------
+        const subCategoryMap = {
+            'system-tool': ['应用分发', '浏览器', '云服务', '实用工具', '桌面组件', '搜索工具', '输入法', '桌面美化', '智能服务', '智能助手'],
+            'content-entertainment': ['在线音乐', '中长视频', '短视频', '数字阅读', '游戏服务', '休闲游戏', '内容社区'],
+            'social-communication': ['即时通讯', '社交网络', '社区论坛'],
+            'travel-navigation': ['地图导航', '出行服务', '交通票务'],
+            'life-service': ['电商购物', '本地生活', '美食外卖', '酒店旅游'],
+            'education-learning': ['在线教育', '语言学习', '职业培训', '阅读工具'],
+            'office-efficiency': ['文档办公', '会议协作', '邮件通讯', '云笔记'],
+            'finance-investment': ['支付理财', '银行保险', '股票基金'],
+            'photography-video': ['拍照修图', '视频剪辑', '直播工具'],
+            'other': ['其他']
+        };
+
+        const categoryNameMap = {
+            'system-tool': '系统工具',
+            'content-entertainment': '内容娱乐',
+            'social-communication': '社交通讯',
+            'travel-navigation': '出行导航',
+            'life-service': '生活服务',
+            'education-learning': '教育学习',
+            'office-efficiency': '办公效率',
+            'finance-investment': '金融理财',
+            'photography-video': '摄影摄像',
+            'other': '其他'
+        };
+
+        const firstPartyApps = [
+            { name: '应用市场', category1: 'system-tool', category2: '应用分发' },
+            { name: '浏览器', category1: 'system-tool', category2: '浏览器' },
+            { name: '云空间', category1: 'system-tool', category2: '云服务' },
+            { name: '天气', category1: 'system-tool', category2: '实用工具' },
+            { name: '负一屏', category1: 'system-tool', category2: '桌面组件' },
+            { name: '小艺搜索', category1: 'system-tool', category2: '搜索工具' },
+            { name: '小艺输入法', category1: 'system-tool', category2: '输入法' },
+            { name: '钱包', category1: 'finance-investment', category2: '支付理财' },
+            { name: '小艺建议', category1: 'system-tool', category2: '智能服务' },
+            { name: '小艺', category1: 'system-tool', category2: '智能助手' },
+            { name: '音乐', category1: 'content-entertainment', category2: '在线音乐' },
+            { name: '主题', category1: 'system-tool', category2: '桌面美化' },
+            { name: '视频', category1: 'content-entertainment', category2: '中长视频' },
+            { name: '华为阅读', category1: 'content-entertainment', category2: '数字阅读' },
+            { name: '畅连', category1: 'social-communication', category2: '即时通讯' },
+            { name: '游戏中心', category1: 'content-entertainment', category2: '游戏服务' },
+            { name: '地图', category1: 'travel-navigation', category2: '地图导航' },
+            { name: '天际通', category1: 'travel-navigation', category2: '出行服务' },
+            { name: '小游戏', category1: 'content-entertainment', category2: '休闲游戏' }
+        ];
+
+        const thirdPartyApps = [
+            // 音乐
+            { name: 'QQ音乐', category1: 'content-entertainment', category2: '在线音乐' },
+            { name: '酷狗音乐', category1: 'content-entertainment', category2: '在线音乐' },
+            { name: '汽水音乐', category1: 'content-entertainment', category2: '在线音乐' },
+            { name: '网易云音乐', category1: 'content-entertainment', category2: '在线音乐' },
+            // 视频
+            { name: '腾讯视频', category1: 'content-entertainment', category2: '中长视频' },
+            { name: '哔哩哔哩', category1: 'content-entertainment', category2: '中长视频' },
+            { name: '爱奇艺', category1: 'content-entertainment', category2: '中长视频' },
+            { name: '优酷视频', category1: 'content-entertainment', category2: '中长视频' },
+            { name: '红果免费短剧', category1: 'content-entertainment', category2: '中长视频' },
+            // 阅读
+            { name: '番茄免费小说', category1: 'content-entertainment', category2: '数字阅读' },
+            { name: '七猫免费小说', category1: 'content-entertainment', category2: '数字阅读' },
+            { name: '微信读书', category1: 'content-entertainment', category2: '数字阅读' },
+            // 浏览器
+            { name: '华为浏览器', category1: 'system-tool', category2: '浏览器' },
+            { name: '百度', category1: 'system-tool', category2: '搜索工具' },
+            { name: '今日头条', category1: 'content-entertainment', category2: '内容社区' },
+            { name: '夸克', category1: 'system-tool', category2: '浏览器' },
+            // 地图
+            { name: '高德地图', category1: 'travel-navigation', category2: '地图导航' },
+            { name: '百度地图', category1: 'travel-navigation', category2: '地图导航' },
+            { name: '腾讯地图', category1: 'travel-navigation', category2: '地图导航' },
+            // AI
+            { name: 'deepseek', category1: 'system-tool', category2: '智能助手' },
+            { name: '豆包', category1: 'system-tool', category2: '智能助手' },
+            { name: '千问', category1: 'system-tool', category2: '智能助手' },
+            { name: '元宝', category1: 'system-tool', category2: '智能助手' },
+            // 输入法
+            { name: '百度输入法', category1: 'system-tool', category2: '输入法' },
+            { name: '搜狗输入法', category1: 'system-tool', category2: '输入法' },
+            // 原有应用
+            { name: '抖音', category1: 'content-entertainment', category2: '短视频' },
+            { name: '微信', category1: 'social-communication', category2: '即时通讯' },
+            { name: '淘宝', category1: 'life-service', category2: '电商购物' },
+            { name: '支付宝', category1: 'finance-investment', category2: '支付理财' },
+            { name: '快手', category1: 'content-entertainment', category2: '短视频' },
+            { name: 'QQ', category1: 'social-communication', category2: '即时通讯' },
+            { name: '京东', category1: 'life-service', category2: '电商购物' },
+            { name: '美团', category1: 'life-service', category2: '本地生活' },
+            { name: 'B站', category1: 'content-entertainment', category2: '中长视频' },
+            { name: '小红书', category1: 'content-entertainment', category2: '内容社区' }
+        ];
+
+        // -------------------------- 全量指标完整口径定义（全部恢复） --------------------------
+        const metricDefinitions = {
+            dau: {
+                title: '日活（DAU）',
+                coreDefinition: '统计周期内，产生有效行为的独立用户/设备数，是衡量产品大盘规模的核心基础指标',
+                caliberDifferences: [
+                    { name: '按账号统计', desc: '按用户唯一账号ID去重，适合评估「可运营的独立用户规模」，用于商业化定价、用户运营' },
+                    { name: '按设备统计', desc: '按设备唯一IMEI/OAID去重，适合评估「硬件终端的覆盖规模」，用于产品迭代、硬件联动评估' }
+                ],
+                effectiveBehavior: [
+                    '通用规则：打开App并停留≥3s，排除误触、闪退等无效启动',
+                    '内容娱乐类：打开App并产生内容浏览行为≥10s',
+                    '工具类：打开App并使用核心功能≥1次'
+                ],
+                scenarioAdaptation: [
+                    { name: '内部日常运营监控', desc: '优先使用<span class="highlight">周期日均DAU</span>，排除单日波动，真实反映业务稳定规模' },
+                    { name: '对外宣发/品牌合作', desc: '优先使用<span class="highlight">周期内日峰值DAU</span>，口径统一为「按账号统计+通用有效行为」，数据更亮眼且合规' },
+                    { name: '产品迭代效果评估', desc: '优先使用<span class="highlight">按设备统计的DAU</span>，精准评估产品在终端设备上的覆盖变化' },
+                    { name: '广告主投放参考', desc: '优先使用<span class="highlight">按账号统计的DAU</span>，口径为「通用有效行为」，广告主更关注可触达的独立用户数' }
+                ],
+                timePeriodDesc: {
+                    day: '当日DAU', week: '周均DAU', month: '月均DAU',
+                    bimonth: '双月均DAU', quarter: '季度均DAU', year: '年均DAU'
+                }
+            },
+            mau: {
+                title: '月活（MAU）',
+                coreDefinition: '统计周期内，产生有效行为的独立用户/设备数，是衡量产品长期用户规模、品牌影响力的核心战略指标',
+                caliberDifferences: [
+                    { name: '按账号统计', desc: '按用户唯一账号ID去重，适合评估「月度可运营的独立用户规模」，是财报披露、广告主合作的核心指标' },
+                    { name: '按设备统计', desc: '按设备唯一IMEI/OAID去重，适合评估「月度硬件终端的整体覆盖规模」' }
+                ],
+                effectiveBehavior: [
+                    '通用规则：自然月内打开App≥1次，排除测试机、羊毛党等无效设备/账号'
+                ],
+                scenarioAdaptation: [
+                    { name: '财报披露/对外宣发', desc: '必须使用<span class="highlight">自然月累计MAU</span>，口径统一为「按账号统计」，是国内/海外资本市场通用的核心指标' },
+                    { name: '广告主年度框架合作', desc: '优先使用<span class="highlight">过去12个月月均MAU</span>，是广告主核算投放预算、定价的核心依据' },
+                    { name: '业务长期健康度评估', desc: '优先使用<span class="highlight">连续6个月MAU趋势</span>，判断业务增长/下滑的长期走势' }
+                ],
+                timePeriodDesc: {
+                    day: '当月累计MAU', week: '当月周度累计MAU', month: '自然月累计MAU',
+                    bimonth: '双月累计MAU', quarter: '季度累计MAU', year: '年度累计MAU'
+                },
+                extraColumn: { name: '月活渗透率', formula: '应用MAU / 大盘对应口径MAU', unit: '%' }
+            },
+            'daily-duration': {
+                title: '日人均使用时长',
+                coreDefinition: '统计周期内，活跃用户/设备在App内的日均有效使用时长，是衡量用户粘性、内容吸引力的核心指标',
+                caliberDifferences: [
+                    { name: '按账号统计', desc: '活跃账号的平均使用时长，适合评估独立用户的整体使用深度' },
+                    { name: '按设备统计', desc: '活跃设备的平均使用时长，适合评估终端设备上的App使用深度' }
+                ],
+                coreRule: '需排除后台挂起、锁屏、暂停、闪退等无效时长，仅统计App前台有效运行时长',
+                scenarioAdaptation: [
+                    { name: '内容娱乐类业务评估', desc: '优先使用<span class="highlight">周期日均使用时长</span>，是内容吸引力、广告变现能力的核心基础（时长越长，广告库存越多）' },
+                    { name: '工具类业务评估', desc: '该指标为辅助参考，工具类业务核心看使用频次，而非时长' },
+                    { name: '产品迭代评估', desc: '优先使用<span class="highlight">迭代前后的时长对比</span>，评估产品优化是否提升了用户使用深度' }
+                ],
+                timePeriodDesc: {
+                    day: '当日人均使用时长', week: '周日均使用时长', month: '月日均使用时长',
+                    bimonth: '双月日均使用时长', quarter: '季度日均使用时长', year: '年日均使用时长'
+                }
+            },
+            'daily-launches': {
+                title: '日人均使用次数',
+                coreDefinition: '统计周期内，活跃用户/设备的日均有效启动次数，是衡量用户对产品的依赖度、使用频次的核心指标',
+                caliberDifferences: [
+                    { name: '按账号统计', desc: '活跃账号的平均启动次数，适合评估独立用户的使用依赖度' },
+                    { name: '按设备统计', desc: '活跃设备的平均启动次数，适合评估终端设备上的App使用频次' }
+                ],
+                coreRule: '需排除误触、快速退出（<3s）、闪退等无效启动，仅统计有效启动次数',
+                scenarioAdaptation: [
+                    { name: '社交通讯/工具类业务评估', desc: '优先使用<span class="highlight">周期日均使用次数</span>，是用户粘性、依赖度的核心指标（如微信日均启动次数≈30次）' },
+                    { name: '产品迭代评估', desc: '优先使用<span class="highlight">迭代前后的启动次数对比</span>，评估产品优化是否提升了用户打开意愿' },
+                    { name: '用户分层运营', desc: '按启动次数将用户分为高/中/低活，针对性制定运营策略' }
+                ],
+                timePeriodDesc: {
+                    day: '当日人均使用次数', week: '周日均使用次数', month: '月日均使用次数',
+                    bimonth: '双月日均使用次数', quarter: '季度日均使用次数', year: '年日均使用次数'
+                }
+            },
+            'biz-duration': {
+                title: '业务行为日人均使用时长',
+                coreDefinition: '统计周期内，产生核心业务行为的活跃用户，在该核心业务上的日均有效使用时长，是衡量核心业务价值的精准指标',
+                coreDifference: '与App总时长的核心区别：仅统计用户在核心业务行为上的时长，排除非核心行为的无效时长，更精准反映核心业务的用户粘性',
+                example: '视频App：仅统计用户播放视频的时长，排除浏览首页、评论、设置等非核心时长；游戏中心：仅统计用户玩游戏的时长，排除浏览游戏列表、设置等非核心时长',
+                caliberDifferences: [
+                    { name: '按账号统计', desc: '产生核心业务行为的活跃账号的平均时长' },
+                    { name: '按设备统计', desc: '产生核心业务行为的活跃设备的平均时长' }
+                ],
+                scenarioAdaptation: [
+                    { name: '核心业务健康度评估', desc: '优先使用<span class="highlight">周期日均业务行为时长</span>，判断核心业务是否真正抓住了用户需求' },
+                    { name: '内容/服务优化评估', desc: '优先使用<span class="highlight">优化前后的时长对比</span>，评估内容/服务迭代是否提升了核心业务的吸引力' },
+                    { name: '商业化价值评估', desc: '核心业务时长直接决定了对应场景的广告变现、付费转化能力' }
+                ],
+                timePeriodDesc: {
+                    day: '当日业务行为人均时长', week: '周日均业务行为人均时长', month: '月日均业务行为人均时长',
+                    bimonth: '双月日均业务行为人均时长', quarter: '季度日均业务行为人均时长', year: '年日均业务行为人均时长'
+                }
+            },
+            'biz-launches': {
+                title: '业务行为日人均使用次数',
+                coreDefinition: '统计周期内，活跃用户/设备产生核心业务行为的日均次数，是衡量核心业务使用频次、用户依赖度的精准指标',
+                coreDifference: '与App总启动次数的核心区别：仅统计用户触发核心业务行为的次数，而非单纯打开App的次数，更精准反映核心业务的用户使用意愿',
+                example: '视频App：仅统计用户点击播放视频的次数，排除单纯打开App的次数；应用市场：仅统计用户下载/更新应用的次数，排除单纯浏览的次数',
+                caliberDifferences: [
+                    { name: '按账号统计', desc: '活跃账号的核心业务行为平均次数' },
+                    { name: '按设备统计', desc: '活跃设备的核心业务行为平均次数' }
+                ],
+                scenarioAdaptation: [
+                    { name: '核心业务转化能力评估', desc: '优先使用<span class="highlight">周期日均业务行为次数</span>，判断用户从打开App到使用核心业务的转化效率' },
+                    { name: '产品路径优化评估', desc: '优先使用<span class="highlight">优化前后的次数对比</span>，评估产品路径调整是否降低了核心行为的使用门槛' }
+                ],
+                timePeriodDesc: {
+                    day: '当日业务行为人均次数', week: '周日均业务行为人均次数', month: '月日均业务行为人均次数',
+                    bimonth: '双月日均业务行为人均次数', quarter: '季度日均业务行为人均次数', year: '年日均业务行为人均次数'
+                }
+            },
+            'arpu': {
+                title: 'ARPU（每活跃用户平均收入）',
+                coreDefinition: '统计周期内，总收入 ÷ 同期活跃用户/设备数，是衡量产品整体变现效率、用户平均商业价值的核心指标',
+                caliberDifferences: [
+                    { name: '按账号统计', desc: '总收入 ÷ 同期活跃账号数，适合评估独立用户的平均商业价值' },
+                    { name: '按设备统计', desc: '总收入 ÷ 同期活跃设备数，适合评估终端设备的平均商业价值' }
+                ],
+                incomeScope: '总收入包含广告收入、会员付费、应用分成、电商佣金等全渠道收入',
+                scenarioAdaptation: [
+                    { name: '产品整体变现能力评估', desc: '优先使用<span class="highlight">月/季度ARPU</span>，判断产品整体商业化健康度' },
+                    { name: '不同业务线变现效率对比', desc: '横向对比不同应用的ARPU，识别高价值业务线，优化资源分配' },
+                    { name: '商业化策略评估', desc: '优先使用<span class="highlight">策略调整前后的ARPU对比</span>，评估商业化优化的效果' }
+                ],
+                timePeriodDesc: {
+                    day: '当日ARPU', week: '周累计ARPU', month: '月累计ARPU',
+                    bimonth: '双月累计ARPU', quarter: '季度累计ARPU', year: '年度累计ARPU'
+                }
+            },
+            'arppu': {
+                title: 'ARPPU（每付费用户平均收入）',
+                coreDefinition: '统计周期内，付费总收入 ÷ 同期付费用户/设备数，是衡量付费用户价值、付费深度的核心指标',
+                caliberDifferences: [
+                    { name: '按账号统计', desc: '付费总收入 ÷ 同期付费账号数，适合评估付费用户的平均付费能力' },
+                    { name: '按设备统计', desc: '付费总收入 ÷ 同期付费设备数，适合评估付费设备的平均付费能力' }
+                ],
+                incomeScope: '仅统计用户直接付费产生的收入，不含广告收入',
+                scenarioAdaptation: [
+                    { name: '付费体系健康度评估', desc: '优先使用<span class="highlight">月/季度ARPPU</span>，判断付费用户的付费深度、付费体系的合理性' },
+                    { name: '会员/付费内容优化评估', desc: '优先使用<span class="highlight">内容更新前后的ARPPU对比</span>，评估付费内容是否提升了用户付费意愿' },
+                    { name: '用户分层运营', desc: '按ARPPU将用户分为高/中/低付费用户，针对性制定付费运营策略' }
+                ],
+                timePeriodDesc: {
+                    day: '当日ARPPU', week: '周累计ARPPU', month: '月累计ARPPU',
+                    bimonth: '双月累计ARPPU', quarter: '季度累计ARPPU', year: '年度累计ARPPU'
+                }
+            },
+            'pay-user': {
+                title: '有效付费用户数',
+                coreDefinition: '统计周期内，产生实际付费行为（含付费购买、会员充值、赠送权益核销）的独立用户/设备数，是衡量付费业务规模的核心指标',
+                caliberRule: '包含付费用户+领取了付费权益的赠送用户，排除仅领取免费试用、未产生实际权益核销的用户',
+                caliberDifferences: [
+                    { name: '按账号统计', desc: '按付费账号ID去重，适合评估付费用户的整体规模' },
+                    { name: '按设备统计', desc: '按付费设备ID去重，适合评估终端设备上的付费覆盖规模' }
+                ],
+                scenarioAdaptation: [
+                    { name: '付费业务规模评估', desc: '优先使用<span class="highlight">月累计有效付费用户数</span>，判断付费业务的整体大盘' },
+                    { name: '付费活动效果评估', desc: '优先使用<span class="highlight">活动前后的付费用户数对比</span>，评估活动对付费转化的拉动效果' }
+                ],
+                timePeriodDesc: {
+                    day: '当日有效付费用户数', week: '周累计有效付费用户数', month: '月累计有效付费用户数',
+                    bimonth: '双月累计有效付费用户数', quarter: '季度累计有效付费用户数', year: '年度累计有效付费用户数'
+                },
+                extraColumn: { name: '付费用户渗透率', formula: '有效付费用户数 / 同期DAU', unit: '%' }
+            },
+            'pay-member': {
+                title: '有效付费会员数',
+                coreDefinition: '统计周期内，处于会员有效期内（含付费会员、赠送会员）的独立用户/设备数，是衡量会员业务规模、用户忠诚度的核心指标',
+                caliberRule: '包含付费开通的会员+官方赠送的有效会员，排除已过期、未激活的会员用户',
+                caliberDifferences: [
+                    { name: '按账号统计', desc: '按会员账号ID去重，适合评估会员用户的整体规模' },
+                    { name: '按设备统计', desc: '按会员绑定的设备ID去重，适合评估会员在终端设备上的覆盖规模' }
+                ],
+                scenarioAdaptation: [
+                    { name: '会员业务健康度评估', desc: '优先使用<span class="highlight">月末有效付费会员数</span>，判断会员业务的稳定规模' },
+                    { name: '会员续费率评估', desc: '优先使用<span class="highlight">连续3个月会员数趋势</span>，判断会员留存、续费的健康度' },
+                    { name: '会员权益优化评估', desc: '优先使用<span class="highlight">权益更新前后的会员数对比</span>，评估会员权益对用户的吸引力' }
+                ],
+                timePeriodDesc: {
+                    day: '当日有效付费会员数', week: '周均有效付费会员数', month: '月均有效付费会员数',
+                    bimonth: '双月均有效付费会员数', quarter: '季度均有效付费会员数', year: '年均有效付费会员数'
+                },
+                extraColumn: { name: '付费会员渗透率', formula: '有效付费会员数 / 同期MAU', unit: '%' }
+            },
+            'app-market-download': {
+                title: '应用市场人均日APP下载量',
+                coreDefinition: '统计周期内，应用市场的日均APP下载量 ÷ 同期应用市场日活用户数，是衡量应用分发效率的核心指标',
+                caliberDifferences: [
+                    { name: '按账号统计', desc: '按下载用户账号去重，适合评估独立用户的下载意愿' },
+                    { name: '按设备统计', desc: '按下载设备去重，适合评估终端设备上的应用分发情况' }
+                ],
+                downloadScope: '仅统计用户主动下载的APP数量，排除系统自动更新、预装应用激活等非主动下载行为',
+                scenarioAdaptation: [
+                    { name: '应用分发效率评估', desc: '优先使用<span class="highlight">月均日下载量</span>，判断应用市场的整体分发能力' },
+                    { name: '应用推荐算法评估', desc: '优先使用<span class="highlight">算法优化前后的下载量对比</span>，评估推荐算法的效果' },
+                    { name: '新应用引入效果评估', desc: '优先使用<span class="highlight">新应用上线后的下载量趋势</span>，判断新应用的用户吸引力' }
+                ],
+                timePeriodDesc: {
+                    day: '当日人均下载量', week: '周日均下载量', month: '月日均下载量',
+                    bimonth: '双月日均下载量', quarter: '季度日均下载量', year: '年日均下载量'
+                }
+            },
+            'ad-ecpm': {
+                title: '广告eCPM',
+                coreDefinition: '千次广告展示可获得的广告收入，是衡量广告变现效率的核心指标',
+                calculationFormula: 'eCPM = 广告总收入 ÷ 广告总展示次数 × 1000',
+                caliberDifferences: [
+                    { name: '分广告位', desc: '按开屏、信息流、激励视频等不同广告位分别统计' },
+                    { name: '分行业', desc: '按游戏、电商、金融等不同广告主行业分别统计' }
+                ],
+                scenarioAdaptation: [
+                    { name: '广告变现能力评估', desc: '优先使用<span class="highlight">整体eCPM趋势</span>，判断广告业务的整体健康度' },
+                    { name: '广告位优化', desc: '优先使用<span class="highlight">分广告位eCPM对比</span>，识别高价值广告位，优化资源分配' },
+                    { name: '广告主结构优化', desc: '优先使用<span class="highlight">分行业eCPM对比</span>，识别高价值行业，优化广告主引入策略' }
+                ],
+                timePeriodDesc: {
+                    day: '当日eCPM', week: '周均eCPM', month: '月均eCPM',
+                    bimonth: '双月均eCPM', quarter: '季度均eCPM', year: '年均eCPM'
+                }
+            },
+            'ad-clients': {
+                title: '国内广告在投客户数',
+                coreDefinition: '统计周期内，在国内市场有实际广告投放行为的广告主数量，是衡量广告业务规模的核心指标',
+                clientScope: '仅统计有实际广告消耗的广告主，排除仅开户、无消耗的广告主',
+                scenarioAdaptation: [
+                    { name: '广告业务规模评估', desc: '优先使用<span class="highlight">月末在投客户数</span>，判断广告业务的整体大盘' },
+                    { name: '广告主增长评估', desc: '优先使用<span class="highlight">连续3个月在投客户数趋势</span>，判断广告主的增长情况' },
+                    { name: '广告主留存评估', desc: '优先使用<span class="highlight">广告主续投率</span>，判断广告主的留存健康度' }
+                ],
+                timePeriodDesc: {
+                    day: '当日在投客户数', week: '当周在投客户数', month: '当月在投客户数',
+                    bimonth: '双月在投客户数', quarter: '季度在投客户数', year: '年度在投客户数'
+                }
+            },
+            'non-huawei-ad-revenue': {
+                title: '非互广告流水占比',
+                coreDefinition: '统计周期内，非华为系广告主的广告流水 ÷ 总广告流水，是衡量广告主结构健康度的核心指标',
+                definitionNote: '非华为系广告主指独立于华为生态的第三方广告主，不含华为自有业务、华为生态合作伙伴的广告投放',
+                scenarioAdaptation: [
+                    { name: '广告主结构健康度评估', desc: '优先使用<span class="highlight">非互广告流水占比趋势</span>，判断广告业务对单一广告主的依赖度' },
+                    { name: '广告主引入策略评估', desc: '优先使用<span class="highlight">非互广告流水占比变化</span>，判断第三方广告主引入策略的效果' },
+                    { name: '业务风险评估', desc: '占比越高，广告业务的抗风险能力越强，对单一生态的依赖度越低' }
+                ],
+                timePeriodDesc: {
+                    day: '当日非互广告流水占比', week: '当周非互广告流水占比', month: '当月非互广告流水占比',
+                    bimonth: '双月非互广告流水占比', quarter: '季度非互广告流水占比', year: '年度非互广告流水占比'
+                }
+            },
+            'card-stock': {
+                title: '卡包总开卡存量',
+                coreDefinition: '统计周期末，用户在华为钱包中成功开通并处于有效状态的各类卡片（银行卡、交通卡、门禁卡、会员卡等）的总数量',
+                cardScope: '包含所有类型的有效卡片，排除已注销、已过期的无效卡片',
+                scenarioAdaptation: [
+                    { name: '钱包业务规模评估', desc: '优先使用<span class="highlight">月末总开卡存量</span>，判断钱包业务的整体大盘' },
+                    { name: '卡片类型结构评估', desc: '优先使用<span class="highlight">分类型卡片存量占比</span>，识别高价值卡片类型，优化资源分配' },
+                    { name: '用户粘性评估', desc: '优先使用<span class="highlight">人均持卡量</span>，判断用户对钱包业务的依赖度' }
+                ],
+                timePeriodDesc: {
+                    day: '当日总开卡存量', week: '周末总开卡存量', month: '月末总开卡存量',
+                    bimonth: '双月末总开卡存量', quarter: '季度末总开卡存量', year: '年末总开卡存量'
+                }
+            },
+            'payment-flow': {
+                title: '支付流水',
+                coreDefinition: '统计周期内，通过华为支付完成的所有交易的总金额，是衡量支付业务规模的核心指标',
+                flowScope: '包含所有类型的支付交易（消费、充值、转账等），不含退款、撤销等反向交易',
+                scenarioAdaptation: [
+                    { name: '支付业务规模评估', desc: '优先使用<span class="highlight">月累计支付流水</span>，判断支付业务的整体大盘' },
+                    { name: '支付场景结构评估', desc: '优先使用<span class="highlight">分场景支付流水占比</span>，识别高价值支付场景' },
+                    { name: '支付业务增长评估', desc: '优先使用<span class="highlight">连续6个月支付流水趋势</span>，判断支付业务的增长情况' }
+                ],
+                timePeriodDesc: {
+                    day: '当日支付流水', week: '周累计支付流水', month: '月累计支付流水',
+                    bimonth: '双月累计支付流水', quarter: '季度累计支付流水', year: '年度累计支付流水'
+                }
+            },
+            'huawei-pay-penetration': {
+                title: '全场景自有支付收单流水渗透率',
+                coreDefinition: '统计周期内，通过华为自有支付收单渠道完成的支付流水 ÷ 全场景总支付流水，是衡量自有支付收单能力的核心指标',
+                definitionNote: '全场景包含手机、平板、车机、大屏、手表等所有终端设备的支付场景',
+                scenarioAdaptation: [
+                    { name: '自有支付收单能力评估', desc: '优先使用<span class="highlight">月均渗透率</span>，判断自有支付收单渠道的整体覆盖情况' },
+                    { name: '分场景收单能力评估', desc: '优先使用<span class="highlight">分场景渗透率对比</span>，识别薄弱场景，优化收单策略' },
+                    { name: '收单渠道优化评估', desc: '优先使用<span class="highlight">渗透率变化趋势</span>，判断自有收单渠道优化的效果' }
+                ],
+                timePeriodDesc: {
+                    day: '当日渗透率', week: '周均渗透率', month: '月均渗透率',
+                    bimonth: '双月均渗透率', quarter: '季度均渗透率', year: '年均渗透率'
+                }
+            },
+            'card-binding-rate': {
+                title: '单框华为账号绑银行卡率',
+                coreDefinition: '统计周期内，绑定了银行卡的华为账号数 ÷ 同期活跃华为账号数，是衡量支付用户转化的核心指标',
+                caliberRule: '仅统计绑定了有效银行卡的账号，排除已解绑、银行卡已过期的账号',
+                scenarioAdaptation: [
+                    { name: '支付用户转化评估', desc: '优先使用<span class="highlight">月均绑卡率</span>，判断活跃用户到支付用户的转化效率' },
+                    { name: '绑卡引导策略评估', desc: '优先使用<span class="highlight">绑卡引导优化前后的绑卡率对比</span>，判断引导策略的效果' },
+                    { name: '用户分层运营', desc: '优先使用<span class="highlight">分用户分层绑卡率</span>，识别高转化用户群体，针对性制定运营策略' }
+                ],
+                timePeriodDesc: {
+                    day: '当日绑卡率', week: '周均绑卡率', month: '月均绑卡率',
+                    bimonth: '双月均绑卡率', quarter: '季度均绑卡率', year: '年均绑卡率'
+                }
+            },
+            'total-card-binding-users': {
+                title: '累计华为支付绑银行卡用户数',
+                coreDefinition: '统计周期末，历史累计绑定过银行卡的华为账号总数（不含已完全解绑的账号），是衡量支付用户规模的核心指标',
+                caliberRule: '包含当前仍绑定有效银行卡的账号，以及历史绑定过、当前未绑定但未完全解绑的账号',
+                scenarioAdaptation: [
+                    { name: '支付用户规模评估', desc: '优先使用<span class="highlight">月末累计绑卡用户数</span>，判断支付业务的整体用户大盘' },
+                    { name: '支付用户增长评估', desc: '优先使用<span class="highlight">连续12个月累计绑卡用户数趋势</span>，判断支付用户的长期增长情况' },
+                    { name: '支付用户留存评估', desc: '优先使用<span class="highlight">累计绑卡用户数与当前有效绑卡用户数的对比</span>，判断支付用户的留存健康度' }
+                ],
+                timePeriodDesc: {
+                    day: '当日累计绑卡用户数', week: '周末累计绑卡用户数', month: '月末累计绑卡用户数',
+                    bimonth: '双月末累计绑卡用户数', quarter: '季度末累计绑卡用户数', year: '年末累计绑卡用户数'
+                }
+            }
+        };
+
+        // -------------------------- 模拟数据生成函数 --------------------------
+        function generateMockData(app, metric, timePeriod) {
+            let baseMultiplier = 1;
+            const category1 = app.category1;
+            if (category1 === 'content-entertainment') baseMultiplier *= 1.5;
+            if (category1 === 'social-communication') baseMultiplier *= 1.8;
+            if (category1 === 'system-tool') baseMultiplier *= 1.2;
+            if (category1 === 'finance-investment') baseMultiplier *= 1.3;
+
+            let nameMultiplier = 1;
+            const hotApps = ['微信', '抖音', '应用市场', '浏览器', 'QQ', '支付宝', '淘宝'];
+            const midApps = ['音乐', '视频', '游戏中心', '地图', '快手', '京东', '美团', 'B站', '小红书', '钱包'];
+            if (hotApps.includes(app.name)) nameMultiplier *= 2.0;
+            if (midApps.includes(app.name)) nameMultiplier *= 1.5;
+
+            let regionMultiplier = 1;
+            if (state.region === 'domestic') regionMultiplier *= 1.2;
+            if (state.region === 'overseas') regionMultiplier *= 0.6;
+
+            let caliberMultiplier = state.caliber === 'account' ? 0.8 : 1.0;
+            
+            // 设备类型影响因子
+            let deviceMultiplier = 1;
+            if (state.deviceType.includes('phone')) deviceMultiplier *= 1.0;
+            if (state.deviceType.includes('tablet')) deviceMultiplier *= 0.7;
+            if (state.deviceType.includes('pc')) deviceMultiplier *= 0.5;
+            if (state.deviceType.includes('tv')) deviceMultiplier *= 0.6;
+            if (state.deviceType.includes('watch')) deviceMultiplier *= 0.3;
+            if (state.deviceType.includes('car')) deviceMultiplier *= 0.4;
+            if (state.deviceType.includes('speaker')) deviceMultiplier *= 0.2;
+            if (state.deviceType.includes('glasses')) deviceMultiplier *= 0.1;
+            if (state.deviceType.includes('headphone')) deviceMultiplier *= 0.2;
+            
+            // 单双框影响因子
+            let frameMultiplier = 1;
+            if (state.frame === 'single') frameMultiplier *= 0.8;
+            if (state.frame === 'double') frameMultiplier *= 1.2;
+            
+            let timeMultiplier = 0.9 + Math.random() * 0.2;
+
+            let baseValue = 0;
+            switch (metric) {
+                case 'dau': baseValue = 1000; break;
+                case 'mau': baseValue = 5000; break;
+                case 'daily-duration': baseValue = 30; break;
+                case 'daily-launches': baseValue = 10; break;
+                case 'biz-duration': baseValue = 15; break;
+                case 'biz-launches': baseValue = 5; break;
+                case 'arpu': baseValue = 2; break;
+                case 'arppu': baseValue = 50; break;
+                case 'pay-user': baseValue = 50; break;
+                case 'pay-member': baseValue = 300; break;
+                case 'app-market-download': baseValue = 2.5; break;
+                case 'ad-ecpm': baseValue = 25; break;
+                case 'ad-clients': baseValue = 1200; break;
+                case 'non-huawei-ad-revenue': baseValue = 65; break;
+                case 'card-stock': baseValue = 8000; break;
+                case 'payment-flow': baseValue = 50000; break;
+                case 'huawei-pay-penetration': baseValue = 45; break;
+                case 'card-binding-rate': baseValue = 32; break;
+                case 'total-card-binding-users': baseValue = 12000; break;
+            }
+
+            if (['ad-clients', 'card-stock', 'total-card-binding-users'].includes(metric)) {
+                if (timePeriod === 'month') timeMultiplier = 1.0;
+                if (timePeriod === 'quarter') timeMultiplier = 1.2 + Math.random() * 0.3;
+                if (timePeriod === 'year') timeMultiplier = 1.5 + Math.random() * 0.5;
+            }
+
+            let finalValue = baseValue * baseMultiplier * nameMultiplier * regionMultiplier * caliberMultiplier * deviceMultiplier * frameMultiplier * timeMultiplier;
+
+            // 生成同环比
+            let mom = (Math.random() * 0.2 - 0.1);
+            let yoy = (Math.random() * 0.3 - 0.1);
+
+            const unitMap = {
+                dau: '万', mau: '万', 'pay-user': '万', 'pay-member': '万',
+                'card-stock': '万张', 'total-card-binding-users': '万',
+                'daily-duration': '分钟', 'biz-duration': '分钟',
+                'daily-launches': '次', 'biz-launches': '次',
+                arpu: '元', arppu: '元', 'payment-flow': '万元',
+                'app-market-download': '个', 'ad-ecpm': '元',
+                'ad-clients': '家', 'non-huawei-ad-revenue': '%',
+                'huawei-pay-penetration': '%', 'card-binding-rate': '%'
+            };
+            const unit = unitMap[metric];
+
+            let formattedValue = '';
+            if (['dau', 'mau', 'pay-user', 'pay-member', 'card-stock', 'total-card-binding-users', 'ad-clients'].includes(metric)) {
+                formattedValue = Math.round(finalValue) + unit;
+            } else if (['non-huawei-ad-revenue', 'huawei-pay-penetration', 'card-binding-rate'].includes(metric)) {
+                formattedValue = Math.min(Math.round(finalValue * 10) / 10, 95) + unit;
+            } else {
+                formattedValue = Math.round(finalValue * 10) / 10 + unit;
+            }
+
+            return {
+                value: formattedValue,
+                mom: mom,
+                yoy: yoy,
+                rawValue: finalValue,
+                metric: metric
+            };
+        }
+
+        // -------------------------- 二级分类联动渲染函数 --------------------------
+        function renderSubCategoryOptions() {
+            const container = document.getElementById('subCategoryOptions');
+            let allSubCategories = [];
+
+            state.appCategory.forEach(cat1 => {
+                if (subCategoryMap[cat1]) {
+                    allSubCategories = allSubCategories.concat(subCategoryMap[cat1]);
+                }
+            });
+
+            allSubCategories = [...new Set(allSubCategories)];
+
+            if (state.subCategory.length === 0) {
+                state.subCategory = [...allSubCategories];
+            }
+
+            let html = '';
+            allSubCategories.forEach(subCat => {
+                const isActive = state.subCategory.includes(subCat);
+                html += `<button class="filter-btn ${isActive ? 'active' : ''}" data-value="${subCat}" onclick="toggleSubCategory('${subCat}')">${subCat}</button>`;
+            });
+
+            container.innerHTML = html;
+            updateAllBtnState('subCategory');
+        }
+
+        // -------------------------- 多指标表格渲染函数 --------------------------
+        function renderTable() {
+            // 1. 筛选应用列表
+            let appsToShow = [];
+            if (state.appType.includes('first-party')) appsToShow = appsToShow.concat(firstPartyApps);
+            if (state.appType.includes('third-party')) appsToShow = appsToShow.concat(thirdPartyApps);
+
+            if (state.appCategory.length > 0 && state.appCategory.length < 10) {
+                appsToShow = appsToShow.filter(app => state.appCategory.includes(app.category1));
+            }
+
+            if (state.subCategory.length > 0) {
+                appsToShow = appsToShow.filter(app => state.subCategory.includes(app.category2));
+            }
+
+            if (state.appName) {
+                const searchTerm = state.appName.toLowerCase();
+                appsToShow = appsToShow.filter(app => app.name.toLowerCase().includes(searchTerm));
+            }
+
+            // 2. 生成表头
+            const table = document.getElementById('dataTable');
+            const selectedMetrics = state.selectedMetrics;
+
+            // 固定基础列
+            let tableHTML = '<thead><tr><th>应用名称</th><th>一级分类</th><th>二级分类</th>';
+
+            // 每个选中指标生成一组列
+            selectedMetrics.forEach(metricKey => {
+                const metricConfig = metricDefinitions[metricKey];
+                const columnName = metricConfig.timePeriodDesc[state.currentTimePeriod];
+                tableHTML += `<th colspan="3">${metricConfig.title} - ${columnName}</th>`;
+                // 渗透率列
+                if (metricConfig.extraColumn) {
+                    tableHTML += `<th>${metricConfig.extraColumn.name}</th>`;
+                }
+            });
+            tableHTML += '</tr><tr>';
+            // 固定列的空表头
+            tableHTML += '<th></th><th></th><th></th>';
+            // 每个指标的子表头
+            selectedMetrics.forEach(metricKey => {
+                const metricConfig = metricDefinitions[metricKey];
+                tableHTML += '<th>指标值</th><th>环比</th><th>同比</th>';
+                if (metricConfig.extraColumn) {
+                    tableHTML += '<th></th>';
+                }
+            });
+            tableHTML += '</tr></thead><tbody>';
+
+            // 3. 生成表体数据
+            const appDataList = []; // 存储应用数据，用于后续解读
+            appsToShow.forEach(app => {
+                let rowHTML = `<tr><td>${app.name}</td><td>${categoryNameMap[app.category1]}</td><td>${app.category2}</td>`;
+                const appData = { name: app.name, category1: app.category1, metrics: {} };
+
+                // 遍历每个选中的指标
+                selectedMetrics.forEach(metricKey => {
+                    const data = generateMockData(app, metricKey, state.currentTimePeriod);
+                    appData.metrics[metricKey] = data;
+
+                    // 同环比格式化
+                    const momClass = data.mom >= 0 ? 'mom-positive' : 'mom-negative';
+                    const momSign = data.mom >= 0 ? '+' : '';
+                    const momStr = momSign + (data.mom * 100).toFixed(1) + '%';
+
+                    const yoyClass = data.yoy >= 0 ? 'yoy-positive' : 'yoy-negative';
+                    const yoySign = data.yoy >= 0 ? '+' : '';
+                    const yoyStr = yoySign + (data.yoy * 100).toFixed(1) + '%';
+
+                    // 指标值+同环比列
+                    rowHTML += `<td>${data.value}</td><td class="${momClass}">${momStr}</td><td class="${yoyClass}">${yoyStr}</td>`;
+
+                    // 渗透率列
+                    const metricConfig = metricDefinitions[metricKey];
+                    if (metricConfig.extraColumn) {
+                        let penetration = '-';
+                        if (metricKey === 'mau') {
+                            const base = MARKET_BASE[state.region][state.caliber].totalMAU;
+                            const val = parseFloat(data.value.replace(/[^0-9.]/g, ''));
+                            penetration = ((val / base) * 100).toFixed(2) + '%';
+                        } else if (metricKey === 'pay-user') {
+                            const base = MARKET_BASE[state.region][state.caliber].avgDAU;
+                            const val = parseFloat(data.value.replace(/[^0-9.]/g, ''));
+                            penetration = ((val / base) * 100).toFixed(2) + '%';
+                        } else if (metricKey === 'pay-member') {
+                            const base = MARKET_BASE[state.region][state.caliber].totalMAU;
+                            const val = parseFloat(data.value.replace(/[^0-9.]/g, ''));
+                            penetration = ((val / base) * 100).toFixed(2) + '%';
+                        }
+                        rowHTML += `<td>${penetration}</td>`;
+                    }
+                });
+
+                rowHTML += `</tr>`;
+                tableHTML += rowHTML;
+                appDataList.push(appData);
+            });
+
+            tableHTML += '</tbody>';
+            table.innerHTML = tableHTML;
+
+            // 4. 添加表格点击事件
+            setTimeout(addTableClickEvents, 100);
+        }
+
+        // -------------------------- 多指标口径面板渲染函数 --------------------------
+        function renderDefinitionPanel() {
+            const container = document.getElementById('definitionContent');
+            const selectedMetrics = state.selectedMetrics;
+
+            if (selectedMetrics.length === 0) {
+                container.innerHTML = '<div class="definition-content">请选择至少一个指标查看口径定义</div>';
+                return;
+            }
+
+            let html = '';
+            selectedMetrics.forEach(metricKey => {
+                const def = metricDefinitions[metricKey];
+                html += `<div class="definition-metric-block">
+                    <div class="definition-metric-title">${def.title}</div>`;
+
+                if (def.coreDefinition) {
+                    html += `<div class="definition-section">
+                        <div class="definition-section-title">核心定义</div>
+                        <div class="definition-content">${def.coreDefinition}</div>
+                    </div>`;
+                }
+
+                if (def.coreDifference) {
+                    html += `<div class="definition-section">
+                        <div class="definition-section-title">核心区别</div>
+                        <div class="definition-content">${def.coreDifference}</div>
+                    </div>`;
+                }
+
+                if (def.example) {
+                    html += `<div class="definition-section">
+                        <div class="definition-section-title">示例说明</div>
+                        <div class="definition-content">${def.example}</div>
+                    </div>`;
+                }
+
+                if (def.calculationFormula) {
+                    html += `<div class="definition-section">
+                        <div class="definition-section-title">计算公式</div>
+                        <div class="definition-content">${def.calculationFormula}</div>
+                    </div>`;
+                }
+
+                if (def.caliberDifferences) {
+                    html += `<div class="definition-section">
+                        <div class="definition-section-title">统计口径差异</div>
+                        <div class="definition-content"><ul>`;
+                    def.caliberDifferences.forEach(diff => {
+                        html += `<li><span class="highlight">${diff.name}</span>：${diff.desc}</li>`;
+                    });
+                    html += `</ul></div></div>`;
+                }
+
+                if (def.scenarioAdaptation) {
+                    html += `<div class="definition-section">
+                        <div class="definition-section-title">场景适配建议</div>
+                        <div class="definition-content"><ul>`;
+                    def.scenarioAdaptation.forEach(scenario => {
+                        html += `<li><span class="highlight">${scenario.name}</span>：${scenario.desc}</li>`;
+                    });
+                    html += `</ul></div></div>`;
+                }
+
+                html += `</div>`;
+            });
+
+            container.innerHTML = html;
+        }
+
+        // -------------------------- AI数据解读生成函数 --------------------------
+        async function renderDataInterpretation(appDataList) {
+            const container = document.getElementById('interpretationContent');
+            const selectedMetrics = state.selectedMetrics;
+            const timePeriod = state.currentTimePeriod;
+            const region = state.region === 'global' ? '全球' : state.region === 'domestic' ? '国内' : '海外';
+
+            if (appDataList.length === 0 || selectedMetrics.length === 0) {
+                container.innerHTML = '<div class="definition-content">暂无数据可解读</div>';
+                return;
+            }
+
+            // 如果启用了AI，调用大模型生成分析
+            if (state.useAi && state.apiKey) {
+                container.innerHTML = '<div style="text-align: center; padding: 40px;"><div class="loading-spinner"></div><p style="margin-top: 20px;">AI正在生成分析报告...</p></div>';
+                
+                const aiAnalysis = await generateAiAnalysis(appDataList);
+                if (aiAnalysis) {
+                    container.innerHTML = aiAnalysis;
+                } else {
+                    // 如果AI分析失败，使用默认分析
+                    renderDefaultInterpretation(appDataList);
+                }
+            } else {
+                // 使用默认分析
+                renderDefaultInterpretation(appDataList);
+            }
+            return;
+        }
+
+        // 默认数据解读生成函数
+        function renderDefaultInterpretation(appDataList) {
+            const container = document.getElementById('interpretationContent');
+            const selectedMetrics = state.selectedMetrics;
+            const timePeriod = state.currentTimePeriod;
+            const region = state.region === 'global' ? '全球' : state.region === 'domestic' ? '国内' : '海外';
+
+            if (appDataList.length === 0 || selectedMetrics.length === 0) {
+                container.innerHTML = '<div class="definition-content">暂无数据可解读</div>';
+                return;
+            }
+
+            // 1. 指标类型判断
+            const hasActiveMetric = selectedMetrics.some(m => ['dau', 'mau', 'daily-duration', 'daily-launches'].includes(m));
+            const hasPayMetric = selectedMetrics.some(m => ['arpu', 'arppu', 'pay-user', 'pay-member'].includes(m));
+            const hasAdMetric = selectedMetrics.some(m => ['ad-ecpm', 'ad-clients', 'non-huawei-ad-revenue'].includes(m));
+            const hasPayBusinessMetric = selectedMetrics.some(m => ['payment-flow', 'card-binding-rate', 'total-card-binding-users'].includes(m));
+
+            // 2. 应用分类分析
+            const categoryDistribution = {};
+            appDataList.forEach(app => {
+                const category = app.category1;
+                categoryDistribution[category] = (categoryDistribution[category] || 0) + 1;
+            });
+            
+            // 找出主要分类
+            const mainCategories = Object.entries(categoryDistribution)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 2)
+                .map(([category]) => category);
+
+            // 3. 头部/尾部应用识别
+            const topApps = [...appDataList].sort((a, b) => {
+                const aVal = a.metrics[selectedMetrics[0]]?.rawValue || 0;
+                const bVal = b.metrics[selectedMetrics[0]]?.rawValue || 0;
+                return bVal - aVal;
+            }).slice(0, 3);
+
+            const bottomApps = [...appDataList].sort((a, b) => {
+                const aVal = a.metrics[selectedMetrics[0]]?.rawValue || 0;
+                const bVal = b.metrics[selectedMetrics[0]]?.rawValue || 0;
+                return aVal - bVal;
+            }).slice(0, 3);
+
+            // 3. 整体增长情况
+            const totalMom = appDataList.reduce((sum, app) => sum + (app.metrics[selectedMetrics[0]]?.mom || 0), 0) / appDataList.length;
+            const totalYoy = appDataList.reduce((sum, app) => sum + (app.metrics[selectedMetrics[0]]?.yoy || 0), 0) / appDataList.length;
+
+            // 4. 生成解读内容
+            let html = '';
+
+            // 整体大盘总结
+            html += `<div class="interpretation-block">
+                <div class="interpretation-block-title">一、整体大盘总结</div>
+                <div class="definition-content">
+                    当前筛选条件为【${region}区域】【${state.appType.includes('first-party') ? '一方应用' : ''}${state.appType.includes('first-party') && state.appType.includes('third-party') ? '+' : ''}${state.appType.includes('third-party') ? '三方应用' : ''}】，统计周期为【${timePeriod}】，共展示${appDataList.length}个应用的${selectedMetrics.length}项核心指标数据。
+                    <br>
+                    整体来看，核心指标${totalMom >= 0 ? '环比增长' : '环比下降'}${Math.abs(totalMom * 100).toFixed(1)}%，${totalYoy >= 0 ? '同比增长' : '同比下降'}${Math.abs(totalYoy * 100).toFixed(1)}%，大盘表现${totalMom >= 0 ? '稳健向好' : '承压下行'}。
+                    <br>
+                    主要应用分类包括：${mainCategories.map(cat => categoryNameMap[cat] || cat).join('、')}。
+                </div>
+            </div>`;
+
+            // 头部应用亮点
+            html += `<div class="interpretation-block">
+                <div class="interpretation-block-title">二、头部应用亮点与优势</div>
+                <div class="definition-content">
+                    1. 头部应用TOP3为：${topApps.map(app => app.name).join('、')}，核心指标表现领先于同分类其他应用，是当前业务的核心增长引擎。
+                    <br>
+                    2. ${topApps[0].name}在${selectedMetrics.map(m => metricDefinitions[m].title).join('、')}等指标上均表现突出，建议持续加大资源投入，放大头部优势，打造标杆应用。
+                    <br>
+                    3. ${topApps[1].name}和${topApps[2].name}环比增速亮眼，建议总结增长经验，复制到同分类其他应用，带动整体大盘提升。
+                </div>
+            </div>`;
+
+            // 待优化应用与问题点
+            html += `<div class="interpretation-block">
+                <div class="interpretation-block-title">三、待优化应用与风险提示</div>
+                <div class="definition-content">
+                    1. 表现靠后的应用为：${bottomApps.map(app => app.name).join('、')}，核心指标低于同分类平均水平，存在较大优化空间。
+                    <br>
+                    2. ${bottomApps[0].name}同比、环比均出现下滑，建议优先排查核心问题：${hasActiveMetric ? '是否用户体验下降、核心功能迭代不及预期' : ''}${hasPayMetric ? '是否付费体系不合理、付费内容吸引力不足' : ''}${hasAdMetric ? '是否广告位设计不合理、广告主引入不足' : ''}。
+                    <br>
+                    3. 建议针对尾部应用开展专项分析，定位用户流失、转化不足的核心原因，制定针对性的优化方案。
+                </div>
+            </div>`;
+
+            // 分类型运营建议
+            html += `<div class="interpretation-block">
+                <div class="interpretation-block-title">四、经营与运营建议</div>
+                <div class="definition-content">`;
+
+            if (hasActiveMetric) {
+                html += `
+                    <strong>1. 用户规模与粘性运营建议</strong>
+                    <ul>
+                        <li>针对DAU/MAU增长乏力的应用，优化拉新渠道，重点投放高转化渠道，提升新增用户规模；同时优化新手引导，提升新用户次日留存。</li>
+                        <li>针对人均使用时长/次数偏低的应用，优化核心功能路径，降低用户使用门槛；通过内容运营、活动运营提升用户打开频次和使用深度。</li>
+                        <li>重点关注用户分层运营，针对高活用户推出专属权益，提升用户忠诚度；针对低活/沉睡用户制定召回策略，激活沉默用户。</li>
+                    </ul>
+                `;
+            }
+
+            if (hasPayMetric) {
+                html += `
+                    <strong>2. 付费变现运营建议</strong>
+                    <ul>
+                        <li>针对ARPU/ARPPU偏低的应用，优化付费体系设计，丰富付费权益，提升用户付费意愿和付费深度。</li>
+                        <li>针对付费用户渗透率偏低的应用，优化付费转化路径，降低首充门槛，推出新手专属优惠，提升活跃用户到付费用户的转化效率。</li>
+                        <li>针对会员业务，优化会员权益体系，提升会员专属价值，同时优化续费引导策略，提升会员续费率和会员生命周期价值。</li>
+                    </ul>
+                `;
+            }
+
+            if (hasAdMetric) {
+                html += `
+                    <strong>3. 广告业务运营建议</strong>
+                    <ul>
+                        <li>针对eCPM偏低的广告位，优化广告位设计和广告素材，提升广告点击率和转化率，进而提升eCPM水平。</li>
+                        <li>加大非华为系广告主引入力度，优化广告主结构，降低对单一生态的依赖，提升广告业务抗风险能力。</li>
+                        <li>优化广告投放算法，提升广告精准度，在提升变现效率的同时，保障用户体验，实现商业价值与用户体验的平衡。</li>
+                    </ul>
+                `;
+            }
+
+            if (hasPayBusinessMetric) {
+                html += `
+                    <strong>4. 支付业务经营建议</strong>
+                    <ul>
+                        <li>针对绑卡率偏低的问题，优化绑卡引导流程，降低绑卡门槛，推出绑卡专属优惠，提升用户绑卡意愿。</li>
+                        <li>提升自有支付收单渗透率，重点拓展车机、大屏、手表等全场景支付覆盖，优化支付体验，提升自有支付渠道的使用占比。</li>
+                        <li>丰富钱包卡包生态，加大交通卡、门禁卡、会员卡等卡片类型的拓展，提升钱包应用的用户粘性和使用频次。</li>
+                    </ul>
+                `;
+            }
+
+            // 分类专属建议
+            if (mainCategories.includes('content-entertainment')) {
+                html += `
+                    <strong>5. 内容娱乐类应用专属建议</strong>
+                    <ul>
+                        <li>优化内容推荐算法，提升内容分发效率，确保用户能够快速发现感兴趣的内容，提升用户停留时长。</li>
+                        <li>加强内容生态建设，引入优质独家内容，提升用户付费意愿，同时通过UGC内容丰富平台生态。</li>
+                        <li>优化广告变现策略，在保证用户体验的前提下，合理增加广告位，提升广告填充率和eCPM。</li>
+                        <li>重点关注短视频赛道的崛起，如汽水音乐等新兴平台的快速增长，传统音乐平台需加快产品创新和内容差异化。</li>
+                    </ul>
+                `;
+            }
+
+            if (mainCategories.includes('system-tool')) {
+                html += `
+                    <strong>5. 系统工具类应用专属建议</strong>
+                    <ul>
+                        <li>优化核心功能体验，提升工具的实用性和便捷性，降低用户使用门槛，提升用户满意度。</li>
+                        <li>加强与系统的深度集成，提供无缝的系统级体验，提升用户粘性和使用频次。</li>
+                        <li>探索增值服务模式，在基础功能免费的基础上，提供高级功能订阅，提升变现能力。</li>
+                        <li>抓住AI发展机遇，集成智能助手功能，提升工具类应用的智能化水平和用户体验。</li>
+                    </ul>
+                `;
+            }
+
+            if (mainCategories.includes('social-communication')) {
+                html += `
+                    <strong>5. 社交通讯类应用专属建议</strong>
+                    <ul>
+                        <li>优化消息触达机制，提升用户消息打开率和回复率，增强用户互动性。</li>
+                        <li>加强社交关系链建设，通过推荐好友、群组等功能，扩大用户社交网络。</li>
+                        <li>探索社交电商、直播等新业务模式，提升用户价值和变现能力。</li>
+                        <li>关注年轻用户群体的社交偏好变化，推出符合Z世代用户需求的新功能和玩法。</li>
+                    </ul>
+                `;
+            }
+
+            if (mainCategories.includes('travel-navigation')) {
+                html += `
+                    <strong>5. 出行导航类应用专属建议</strong>
+                    <ul>
+                        <li>优化地图数据准确性和实时性，提升导航体验，确保用户出行顺畅。</li>
+                        <li>拓展出行服务生态，整合打车、加油、停车等服务，提供一站式出行解决方案。</li>
+                        <li>加强用户个性化推荐，根据用户出行习惯和偏好，提供定制化的出行建议。</li>
+                        <li>结合自动驾驶和智能座舱发展趋势，提前布局车机端导航服务，抢占智能出行新赛道。</li>
+                    </ul>
+                `;
+            }
+
+            if (mainCategories.includes('life-service')) {
+                html += `
+                    <strong>5. 生活服务类应用专属建议</strong>
+                    <ul>
+                        <li>拓展服务覆盖范围，增加更多生活场景的服务接入，提升用户粘性。</li>
+                        <li>优化服务质量控制，建立商家评级体系，提升用户信任度和满意度。</li>
+                        <li>加强会员体系建设，通过积分、优惠券等激励手段，提升用户复购率。</li>
+                        <li>关注本地生活服务的下沉市场机会，加强三四线城市的服务覆盖和运营。</li>
+                    </ul>
+                `;
+            }
+
+            // 互联网趋势洞察
+            html += `
+                <strong>6. 互联网趋势洞察</strong>
+                <ul>
+                    <li>短视频和AI驱动的应用持续高速增长，传统内容平台面临用户流失挑战。</li>
+                    <li>用户对个性化服务和智能体验的需求日益增长，应用需加强AI技术的融合。</li>
+                    <li>全场景生态建设成为趋势，应用需加强跨设备、跨平台的无缝体验。</li>
+                    <li>隐私保护和数据安全成为用户关注重点，应用需在功能创新与用户隐私之间找到平衡。</li>
+                </ul>
+            `;
+
+            html += `</div></div>`;
+
+            container.innerHTML = html;
+        }
+
+        // -------------------------- 交互事件处理函数 --------------------------
+        // 指标多选切换
+        function toggleMetric(metricKey) {
+            const index = state.selectedMetrics.indexOf(metricKey);
+            const btn = document.querySelector(`.metric-item[data-metric="${metricKey}"]`);
+
+            if (index > -1) {
+                // 取消选中，至少保留一个指标
+                if (state.selectedMetrics.length > 1) {
+                    state.selectedMetrics.splice(index, 1);
+                    btn.classList.remove('active');
+                }
+            } else {
+                // 新增选中
+                state.selectedMetrics.push(metricKey);
+                btn.classList.add('active');
+            }
+
+            // 重新渲染
+            renderTable();
+            renderDefinitionPanel();
+        }
+
+        // 其他基础交互函数
+        function selectRegion(value) {
+            state.region = value;
+            document.querySelectorAll('#regionOptions .filter-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.value === value);
+            });
+            renderTable();
+        }
+
+        function selectFrame(value) {
+            state.frame = value;
+            document.querySelectorAll('#frameOptions .filter-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.value === value);
+            });
+            renderTable();
+        }
+
+        function selectCaliber(value) {
+            state.caliber = value;
+            document.querySelectorAll('#caliberOptions .filter-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.value === value);
+            });
+            renderTable();
+        }
+
+        function toggleOption(type, value) {
+            const arr = state[type];
+            const index = arr.indexOf(value);
+            index > -1 ? arr.splice(index, 1) : arr.push(value);
+            
+            const btn = document.querySelector(`#${type}Options .filter-btn[data-value="${value}"]`);
+            btn.classList.toggle('active');
+            updateAllBtnState(type);
+            
+            if (type === 'appCategory') {
+                state.subCategory = [];
+                renderSubCategoryOptions();
+            }
+            
+            renderTable();
+        }
+
+        function toggleCategory(value) {
+            toggleOption('appCategory', value);
+        }
+
+        function toggleSubCategory(value) {
+            const arr = state.subCategory;
+            const index = arr.indexOf(value);
+            index > -1 ? arr.splice(index, 1) : arr.push(value);
+            
+            const btn = document.querySelector(`#subCategoryOptions .filter-btn[data-value="${value}"]`);
+            btn.classList.toggle('active');
+            updateAllBtnState('subCategory');
+            renderTable();
+        }
+
+        function toggleAll(type) {
+            const allBtn = document.querySelector(`#${type}Options`).parentElement.querySelector('.all-btn');
+            const options = document.querySelectorAll(`#${type}Options .filter-btn`);
+            
+            if (allBtn.classList.contains('active')) {
+                allBtn.classList.remove('active');
+                state[type] = [];
+                options.forEach(btn => btn.classList.remove('active'));
+            } else {
+                allBtn.classList.add('active');
+                state[type] = Array.from(options).map(btn => btn.dataset.value);
+                options.forEach(btn => btn.classList.add('active'));
+            }
+            
+            if (type === 'appCategory') {
+                state.subCategory = [];
+                renderSubCategoryOptions();
+            }
+            
+            renderTable();
+        }
+
+        function updateAllBtnState(type) {
+            const allBtn = document.querySelector(`#${type}Options`).parentElement.querySelector('.all-btn');
+            if (!allBtn) return;
+            
+            const options = document.querySelectorAll(`#${type}Options .filter-btn`);
+            const allSelected = Array.from(options).every(btn => btn.classList.contains('active'));
+            allBtn.classList.toggle('active', allSelected);
+        }
+
+        function handleSearch() {
+            state.appName = document.getElementById('appNameSearch').value;
+            renderTable();
+        }
+
+        function toggleLevel(level) {
+            const list = document.getElementById(`level${level}`);
+            const arrow = document.getElementById(`arrow${level}`);
+            list.classList.toggle('active');
+            arrow.textContent = list.classList.contains('active') ? '▼' : '▶';
+        }
+
+        function selectTimePeriod(timePeriod) {
+            state.currentTimePeriod = timePeriod;
+            document.querySelectorAll('#timePeriodSelect .time-period-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.value === timePeriod);
+            });
+            renderTable();
+        }
+
+        // -------------------------- 图表生成功能 --------------------------
+        // 生成应用历史数据
+        function generateAppHistoryData(appName, metric) {
+            let timeLabels = [];
+            let trendFactor = 1;
+            
+            // 根据当前选择的时间周期生成对应的时间标签
+            switch (state.currentTimePeriod) {
+                case 'day':
+                    timeLabels = ['1日', '2日', '3日', '4日', '5日', '6日'];
+                    break;
+                case 'week':
+                    timeLabels = ['第1周', '第2周', '第3周', '第4周', '第5周', '第6周'];
+                    break;
+                case 'month':
+                    timeLabels = ['1月', '2月', '3月', '4月', '5月', '6月'];
+                    break;
+                case 'bimonth':
+                    timeLabels = ['1-2月', '3-4月', '5-6月', '7-8月', '9-10月', '11-12月'];
+                    break;
+                case 'quarter':
+                    timeLabels = ['Q1', 'Q2', 'Q3', 'Q4', 'Q1', 'Q2'];
+                    break;
+                case 'year':
+                    timeLabels = ['2022', '2023', '2024', '2025', '2026', '2027'];
+                    break;
+                default:
+                    timeLabels = ['1月', '2月', '3月', '4月', '5月', '6月'];
+            }
+            
+            // 根据应用名称设置趋势因子
+            const risingApps = ['汽水音乐', '抖音', '快手', '小红书'];
+            const decliningApps = ['QQ音乐', '酷狗音乐', '网易云音乐'];
+            
+            if (risingApps.includes(appName)) {
+                trendFactor = 1.05; // 上升趋势
+            } else if (decliningApps.includes(appName)) {
+                trendFactor = 0.95; // 下降趋势
+            }
+            
+            const data = [];
+            let baseValue = 1000;
+            
+            // 根据指标类型设置基础值
+            if (metric === 'dau') baseValue = 1000;
+            if (metric === 'mau') baseValue = 5000;
+            if (metric === 'daily-duration') baseValue = 30;
+            if (metric === 'daily-launches') baseValue = 10;
+            if (metric === 'arpu') baseValue = 2;
+            
+            // 根据应用名称调整基础值
+            if (appName === '微信') baseValue *= 5;
+            if (appName === '抖音') baseValue *= 3;
+            if (appName === 'QQ音乐') baseValue *= 1.5;
+            if (appName === '汽水音乐') baseValue *= 2;
+            
+            let currentValue = baseValue * (0.8 + Math.random() * 0.4);
+            
+            for (let i = 0; i < timeLabels.length; i++) {
+                // 应用趋势因子
+                currentValue *= trendFactor;
+                // 添加一些随机波动
+                const change = (Math.random() * 0.1 - 0.05);
+                currentValue = currentValue * (1 + change);
+                data.push(Math.round(currentValue));
+            }
+            
+            return {
+                labels: timeLabels,
+                data: data
+            };
+        }
+
+        // 生成应用对比数据
+        function generateAppComparisonData(apps, metric) {
+            const data = [];
+            const appNames = [];
+            
+            apps.forEach(app => {
+                appNames.push(app.name);
+                const mockData = generateMockData(app, metric, state.currentTimePeriod);
+                data.push(Math.round(mockData.rawValue));
+            });
+            
+            return {
+                appNames: appNames,
+                data: data
+            };
+        }
+
+        // 打开悬浮图表
+        function openFloatingChart(title, type, data) {
+            const chartContainer = document.getElementById('floatingChart');
+            const chartTitle = document.getElementById('floatingChartTitle');
+            const chartActions = document.getElementById('floatingChartActions');
+            const chartDom = document.getElementById('floatingChartContent');
+            
+            chartTitle.textContent = title;
+            chartContainer.style.display = 'block';
+            
+            // 清空之前的按钮
+            chartActions.innerHTML = '';
+            
+            // 添加图表类型切换按钮
+            if (type === 'history') {
+                chartActions.innerHTML = `
+                    <button class="chart-btn active" data-type="line" onclick="changeFloatingChartType('line')">折线图</button>
+                    <button class="chart-btn" data-type="bar" onclick="changeFloatingChartType('bar')">柱状图</button>
+                `;
+            } else if (type === 'comparison') {
+                chartActions.innerHTML = `
+                    <button class="chart-btn active" data-type="bar" onclick="changeFloatingChartType('bar')">柱状图</button>
+                `;
+            }
+            
+            if (floatingChart) {
+                floatingChart.dispose();
+            }
+            
+            floatingChart = echarts.init(chartDom);
+            floatingChart.setOption(data);
+            currentChartType = type;
+        }
+
+        // 关闭悬浮图表
+        function closeFloatingChart() {
+            const chartContainer = document.getElementById('floatingChart');
+            chartContainer.style.display = 'none';
+            
+            if (floatingChart) {
+                floatingChart.dispose();
+                floatingChart = null;
+            }
+        }
+
+        // 切换悬浮图表类型
+        function changeFloatingChartType(type) {
+            // 更新按钮状态
+            const buttons = document.querySelectorAll('#floatingChartActions .chart-btn');
+            buttons.forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.type === type);
+            });
+            
+            // 重新渲染图表
+            if (currentChartType === 'history') {
+                // 从标题中提取应用名称和指标
+                const chartTitle = document.getElementById('floatingChartTitle').textContent;
+                const parts = chartTitle.split(' - ');
+                if (parts.length >= 2) {
+                    const appName = parts[0];
+                    const metricTitle = parts[1].split(' ')[0];
+                    // 找到对应的metric key
+                    let metricKey = 'dau';
+                    for (const key in metricDefinitions) {
+                        if (metricDefinitions[key].title === metricTitle) {
+                            metricKey = key;
+                            break;
+                        }
+                    }
+                    
+                    const historyData = generateAppHistoryData(appName, metricKey);
+                    const option = {
+                        tooltip: {
+                            trigger: 'axis'
+                        },
+                        legend: {
+                            data: [metricDefinitions[metricKey].title]
+                        },
+                        xAxis: {
+                            type: 'category',
+                            boundaryGap: type === 'line' ? false : true,
+                            data: historyData.labels
+                        },
+                        yAxis: {
+                            type: 'value'
+                        },
+                        series: [
+                            {
+                                name: metricDefinitions[metricKey].title,
+                                type: type,
+                                data: historyData.data,
+                                smooth: type === 'line',
+                                itemStyle: {
+                                    color: '#CF0A2C'
+                                },
+                                areaStyle: type === 'line' ? {
+                                    color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                        { offset: 0, color: 'rgba(207, 10, 44, 0.3)' },
+                                        { offset: 1, color: 'rgba(207, 10, 44, 0.1)' }
+                                    ])
+                                } : undefined
+                            }
+                        ]
+                    };
+                    
+                    floatingChart.setOption(option);
+                }
+            } else if (currentChartType === 'comparison') {
+                // 从标题中提取指标
+                const chartTitle = document.getElementById('floatingChartTitle').textContent;
+                const metricTitle = chartTitle.split(' ')[0];
+                // 找到对应的metric key
+                let metricKey = 'dau';
+                for (const key in metricDefinitions) {
+                    if (metricDefinitions[key].title === metricTitle) {
+                        metricKey = key;
+                        break;
+                    }
+                }
+                
+                // 获取当前应用列表
+                let appsToShow = [];
+                if (state.appType.includes('first-party')) appsToShow = appsToShow.concat(firstPartyApps);
+                if (state.appType.includes('third-party')) appsToShow = appsToShow.concat(thirdPartyApps);
+
+                if (state.appCategory.length > 0 && state.appCategory.length < 10) {
+                    appsToShow = appsToShow.filter(app => state.appCategory.includes(app.category1));
+                }
+
+                if (state.subCategory.length > 0) {
+                    appsToShow = appsToShow.filter(app => state.subCategory.includes(app.category2));
+                }
+
+                if (state.appName) {
+                    const searchTerm = state.appName.toLowerCase();
+                    appsToShow = appsToShow.filter(app => app.name.toLowerCase().includes(searchTerm));
+                }
+                
+                const comparisonData = generateAppComparisonData(appsToShow, metricKey);
+                
+                // 只保留柱状图类型
+                const option = {
+                    tooltip: {
+                        trigger: 'axis',
+                        axisPointer: {
+                            type: 'shadow'
+                        }
+                    },
+                    grid: {
+                        left: '3%',
+                        right: '4%',
+                        bottom: '3%',
+                        containLabel: true
+                    },
+                    xAxis: {
+                        type: 'category',
+                        data: comparisonData.appNames,
+                        axisLabel: {
+                            interval: 0,
+                            rotate: 30
+                        }
+                    },
+                    yAxis: {
+                        type: 'value'
+                    },
+                    series: [
+                        {
+                            name: metricDefinitions[metricKey].title,
+                            type: 'bar',
+                            data: comparisonData.data,
+                            itemStyle: {
+                                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                    { offset: 0, color: '#CF0A2C' },
+                                    { offset: 1, color: '#E64340' }
+                                ])
+                            }
+                        }
+                    ]
+                };
+                
+                floatingChart.setOption(option);
+            }
+        }
+
+        // 渲染应用历史数据图表（悬浮式）
+        function renderAppHistoryChart(appName, metric) {
+            const historyData = generateAppHistoryData(appName, metric);
+            const option = {
+                tooltip: {
+                    trigger: 'axis'
+                },
+                legend: {
+                    data: [metricDefinitions[metric].title]
+                },
+                xAxis: {
+                    type: 'category',
+                    boundaryGap: false,
+                    data: historyData.labels
+                },
+                yAxis: {
+                    type: 'value'
+                },
+                series: [
+                    {
+                        name: metricDefinitions[metric].title,
+                        type: 'line',
+                        data: historyData.data,
+                        smooth: true,
+                        itemStyle: {
+                            color: '#CF0A2C'
+                        },
+                        areaStyle: {
+                            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                { offset: 0, color: 'rgba(207, 10, 44, 0.3)' },
+                                { offset: 1, color: 'rgba(207, 10, 44, 0.1)' }
+                            ])
+                        }
+                    }
+                ]
+            };
+            
+            openFloatingChart(`${appName} - ${metricDefinitions[metric].title} 历史趋势`, 'history', option);
+        }
+
+        // 渲染应用对比图表（悬浮式）
+        function renderAppComparisonChart(apps, metric) {
+            const comparisonData = generateAppComparisonData(apps, metric);
+            const option = {
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: {
+                        type: 'shadow'
+                    }
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    bottom: '3%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    data: comparisonData.appNames,
+                    axisLabel: {
+                        interval: 0,
+                        rotate: 30
+                    }
+                },
+                yAxis: {
+                    type: 'value'
+                },
+                series: [
+                    {
+                        name: metricDefinitions[metric].title,
+                        type: 'bar',
+                        data: comparisonData.data,
+                        itemStyle: {
+                            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                { offset: 0, color: '#CF0A2C' },
+                                { offset: 1, color: '#E64340' }
+                            ])
+                        }
+                    }
+                ]
+            };
+            
+            openFloatingChart(`${metricDefinitions[metric].title} 应用对比`, 'comparison', option);
+        }
+
+        // 切换应用对比图表显示
+        function toggleComparisonChart() {
+            // 获取当前应用列表
+            let appsToShow = [];
+            if (state.appType.includes('first-party')) appsToShow = appsToShow.concat(firstPartyApps);
+            if (state.appType.includes('third-party')) appsToShow = appsToShow.concat(thirdPartyApps);
+
+            if (state.appCategory.length > 0 && state.appCategory.length < 10) {
+                appsToShow = appsToShow.filter(app => state.appCategory.includes(app.category1));
+            }
+
+            if (state.subCategory.length > 0) {
+                appsToShow = appsToShow.filter(app => state.subCategory.includes(app.category2));
+            }
+
+            if (state.appName) {
+                const searchTerm = state.appName.toLowerCase();
+                appsToShow = appsToShow.filter(app => app.name.toLowerCase().includes(searchTerm));
+            }
+            
+            if (appsToShow.length > 0) {
+                const metric = state.selectedMetrics[0]; // 使用第一个选中的指标
+                renderAppComparisonChart(appsToShow, metric);
+            }
+        }
+
+        // -------------------------- 表格点击事件处理 --------------------------
+        function addTableClickEvents() {
+            const table = document.getElementById('dataTable');
+            const rows = table.querySelectorAll('tbody tr');
+            
+            rows.forEach(row => {
+                const appNameCell = row.querySelector('td:first-child');
+                appNameCell.addEventListener('click', () => {
+                    const appName = appNameCell.textContent;
+                    const metric = state.selectedMetrics[0]; // 使用第一个选中的指标
+                    renderAppHistoryChart(appName, metric);
+                });
+            });
+        }
+
+        // -------------------------- 初始化 --------------------------
+        window.addEventListener('resize', () => {
+            if (floatingChart) floatingChart.resize();
+        });
+
+        // 大模型集成功能
+        // 保存API Key
+        function saveApiKey() {
+            const apiKeyInput = document.getElementById('apiKeyInput');
+            const apiStatus = document.getElementById('apiStatus');
+            const apiKey = apiKeyInput.value.trim();
+            
+            if (apiKey) {
+                state.apiKey = apiKey;
+                state.useAi = true;
+                localStorage.setItem('aiApiKey', apiKey);
+                localStorage.setItem('useAi', 'true');
+                apiStatus.textContent = '已连接';
+                apiStatus.className = 'api-status connected';
+                alert('API Key 保存成功！');
+            } else {
+                apiStatus.textContent = '未配置';
+                apiStatus.className = 'api-status disconnected';
+                state.apiKey = '';
+                state.useAi = false;
+                localStorage.removeItem('aiApiKey');
+                localStorage.setItem('useAi', 'false');
+            }
+        }
+
+        // 调用大模型生成分析
+        async function generateAiAnalysis(appDataList) {
+            const apiStatus = document.getElementById('apiStatus');
+            
+            if (!state.apiKey) {
+                apiStatus.textContent = '未配置API Key';
+                apiStatus.className = 'api-status disconnected';
+                return null;
+            }
+            
+            apiStatus.innerHTML = '<div class="loading-spinner"></div> 生成分析中...';
+            
+            try {
+                // 准备数据
+                const selectedMetrics = state.selectedMetrics;
+                const timePeriod = state.currentTimePeriod;
+                const region = state.region === 'global' ? '全球' : state.region === 'domestic' ? '国内' : '海外';
+                
+                // 构建分析请求数据
+                const analysisData = {
+                    appDataList: appDataList,
+                    selectedMetrics: selectedMetrics,
+                    timePeriod: timePeriod,
+                    region: region,
+                    metrics: selectedMetrics.map(metric => ({
+                        key: metric,
+                        name: metricDefinitions[metric].title
+                    }))
+                };
+                
+                // 调用大模型API（支持Qwen3.5Plus API）
+                const response = await fetch('https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${state.apiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: 'qwen-plus',
+                        messages: [
+                            {
+                                role: 'system',
+                                content: `你是一位专业的数据分析专家，擅长分析移动应用数据并生成结构清晰、逻辑严谨的洞察报告。请根据提供的数据，生成一份专业的分析报告，要求如下：
+
+【输出格式】（必须严格按此格式输出）
+
+<div class="ai-card overview">
+<div class="ai-card-title">📈 整体大盘分析</div>
+<div class="ai-card-content">
+<p>（在这里用一段完整、连贯的话来描述整体大盘情况，包括数据表现、环比同比变化、趋势判断等，写成一段完整的分析段落，不要碎片化的短语）</p>
+</div>
+</div>
+
+<div class="ai-card top-apps">
+<div class="ai-card-title">🏆 头部应用亮点</div>
+<div class="ai-card-content">
+<p>（在这里用连贯的段落描述头部应用的亮点，包括具体应用名称、核心优势、数据表现等，写成完整的分析段落）</p>
+<ul>
+<li>（每个列表项也要写成完整的句子，不要碎片化）</li>
+<li>（例如：微信在DAU指标上表现最为突出，达到5.2亿，环比增长3.2%，稳居社交类应用首位）</li>
+</ul>
+</div>
+</div>
+
+<div class="ai-card problems">
+<div class="ai-card-title">⚠️ 问题应用诊断</div>
+<div class="ai-card-content">
+<p>（用连贯的段落分析问题应用，指出具体问题、可能原因和改进建议，写成完整的分析段落）</p>
+</div>
+</div>
+
+<div class="ai-card suggestions">
+<div class="ai-card-title">💡 运营建议</div>
+<div class="ai-card-content">
+<p>（用连贯的段落阐述运营建议，说明具体的策略和实施方案）</p>
+<ul>
+<li>（每条建议都要写成完整的句子，包含具体的操作步骤和预期效果）</li>
+<li>（例如：建议优化新手引导流程，通过增加趣味性任务和即时奖励机制，提升新用户次日留存率5%以上）</li>
+</ul>
+</div>
+</div>
+
+<div class="ai-card trends">
+<div class="ai-card-title">🔮 趋势洞察</div>
+<div class="ai-card-content">
+<p>（用连贯的段落分析行业趋势，结合当前互联网发展动向和市场变化）</p>
+</div>
+</div>
+
+【排版强制要求】
+1. 必须使用上述HTML结构，每个卡片独立完整
+2. 每个<p>标签内必须是一段完整、连贯的话，不能是碎片化的词语或短语
+3. 每个<li>标签内也必须是一句完整的话
+4. 段落之间要有自然的逻辑衔接
+5. 重点数据用<strong>包裹
+6. 禁止输出碎片化的词语如"增长强劲"、"表现良好"等独立词语，必须构成完整句子`
+                            },
+                            {
+                                role: 'user',
+                                content: `请分析以下应用数据：\n${JSON.stringify(analysisData, null, 2)}\n\n请严格按照上述HTML格式输出，每个段落必须是完整连贯的句子，不要碎片化。`
+                            }
+                        ],
+                        temperature: 0.7
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`API请求失败: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                let analysis = data.choices[0].message.content;
+                
+                // 清理大模型生成的内容，确保不会影响页面样式
+                // 移除可能的样式标签
+                analysis = analysis.replace(/<style[\s\S]*?<\/style>/gi, '');
+                // 移除可能的脚本标签
+                analysis = analysis.replace(/<script[\s\S]*?<\/script>/gi, '');
+                // 确保内容在正确的容器中
+                analysis = `<div class="ai-analysis-content">${analysis}</div>`;
+                
+                apiStatus.textContent = '已连接';
+                apiStatus.className = 'api-status connected';
+                
+                return analysis;
+            } catch (error) {
+                console.error('大模型调用失败:', error);
+                apiStatus.textContent = '连接失败';
+                apiStatus.className = 'api-status disconnected';
+                return null;
+            }
+        }
+
+        // 初始化API Key
+        function initApiKey() {
+            const apiKeyInput = document.getElementById('apiKeyInput');
+            const apiStatus = document.getElementById('apiStatus');
+            
+            if (state.apiKey) {
+                apiKeyInput.value = state.apiKey;
+                apiStatus.textContent = '已连接';
+                apiStatus.className = 'api-status connected';
+            } else {
+                apiStatus.textContent = '未配置';
+                apiStatus.className = 'api-status disconnected';
+            }
+        }
+
+        // 生成分析报告
+        async function generateReport() {
+            if (!state.apiKey) {
+                alert('请先配置API Key');
+                return;
+            }
+            
+            const container = document.getElementById('interpretationContent');
+            container.innerHTML = '<div style="text-align: center; padding: 40px;"><div class="loading-spinner"></div><p style="margin-top: 20px;">AI正在生成分析报告...</p></div>';
+            
+            // 获取当前表格数据
+            const appDataList = getCurrentAppDataList();
+            const aiAnalysis = await generateAiAnalysis(appDataList);
+            if (aiAnalysis) {
+                container.innerHTML = aiAnalysis;
+            } else {
+                container.innerHTML = '<div class="definition-content">生成分析报告失败，请检查API配置。</div>';
+            }
+        }
+
+        // 获取当前表格数据
+        function getCurrentAppDataList() {
+            const appDataList = [];
+            const table = document.getElementById('dataTable');
+            if (!table) return appDataList;
+            
+            const rows = table.querySelectorAll('tbody tr');
+            rows.forEach(row => {
+                const appName = row.querySelector('td:first-child')?.textContent?.trim();
+                if (appName && appName !== '暂无数据') {
+                    const cells = row.querySelectorAll('td');
+                    const appData = {
+                        name: appName,
+                        metrics: {}
+                    };
+                    
+                    // 解析每个指标数据
+                    if (cells.length > 1) {
+                        const metricKeys = Object.keys(metricDefinitions);
+                        metricKeys.forEach((key, index) => {
+                            if (cells[index + 1]) {
+                                const cellText = cells[index + 1].textContent || '';
+                                const valueMatch = cellText.match(/[\d,]+/);
+                                if (valueMatch) {
+                                    const rawValue = parseInt(valueMatch[0].replace(/,/g, ''));
+                                    appData.metrics[key] = {
+                                        rawValue: rawValue,
+                                        displayValue: cellText,
+                                        trend: Math.random() > 0.5 ? 'up' : 'down'
+                                    };
+                                }
+                            }
+                        });
+                    }
+                    appDataList.push(appData);
+                }
+            });
+            
+            return appDataList;
+        }
+
+        // 初始渲染
+        initApiKey();
+        renderSubCategoryOptions();
+        renderTable();
+        renderDefinitionPanel();
+        
+        // 添加表格点击事件
+        setTimeout(addTableClickEvents, 100);
+    </script>
+</body>
+</html>
